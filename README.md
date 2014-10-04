@@ -43,5 +43,5 @@ Here are some notes on GitHub
    * git clone https://github.com/MCMLXXXIV/PFO_Tools
 
 Then modify and:
-   1) git commit -m 'learning the ropes'
-   2) git push
+   1. git commit -m 'learning the ropes'
+   2. git push
