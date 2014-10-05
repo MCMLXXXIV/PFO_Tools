@@ -70,8 +70,10 @@ Beginner learnings - it took me a day to figure out that the lib needs to be lis
 and that I needed to wrap the include statements in extern "C"{ ... }.  This page states that the reason is:
 
 http://www.cplusplus.com/forum/general/13700/#msg66132
+
 You need to do this because if the C++ compiler doesn't know it's looking at C declarations it'll try to mangle the function names, but the C function definitions won't be mangled, so when the time comes to link everything, the linker won't find the definitions. extern "C" tells the compiler that the declarations inside shouldn't be mangled.
 
+```
 dbl@fish... cat PFO_Tools.cc
 #include <stdio.h>
 
@@ -86,14 +88,17 @@ int main() {
 }
 Sat Oct 04 09:39:48
 dbl@fish... g++ -Wno-write-strings -L/usr/local/libxls/lib -I/usr/local/libxls/include PFO_Tools.cc -lxlsreader -o read_spreadsheet_test
-
+```
 
 
 http://sourceforge.net/projects/libxls/files/latest/download?source=files
+
 http://sourceforge.net/projects/libxls/files/libxls-1.4.0.zip/download
 
 
 Here are some notes on GitHub
+=============================
+
    * signed up for an account
    * created a new repository named PFO_Tools and let it do the default thing of seeding the repo w/ README.md
    * sudo apt-get install git
