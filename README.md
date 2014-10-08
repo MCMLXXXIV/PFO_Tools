@@ -26,20 +26,23 @@ The steps will be
 Status
 ======
 
-There is no make file yet - but the code compiles and runs
-      g++ -Wall -g src/OfficialData.cc src/RequirementNode.cc src/ProvidesNode.cc src/EntityDefinition.cc src/main.cc -o arch_test
+There is a very simple makefile in the src dir. 
 
-Right now it opens the dir with the csv files (above) and goes through all the files.
+The resulting binary, arch_test, opens the dir with the csv files (above) and goes through all the files.
 If the file name has a handler defined, it will read the file and store the results in
 an OfficialData object.
 
 As of this checkin, there are only handlers for the Recipes (Crafting).csv, Recipes (Refining).csv.
 
-Next I will work on designing and prototyping the solution code.  That is, given a goal (item) and a bank,
+I am working on designing and prototyping the solution code which will, given a goal (item) and a bank,
 figure out the qty of raw materials that need to be gathered and the refining/crafting time required
 to complete the item/goal.
 
+TODO
+====
 
+I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but
+for now I'll just write stuff to stdout.
 
 Notes on libxls
 ===============
