@@ -114,7 +114,7 @@ Here are some notes on GitHub
    * sudo apt-get install git
    * [did many confusing, wrong things before I figured it out]
    * git config --global user.name "MCMLXXXIV"
-   * git config --global user.email "dbl_jr@yahoo.com"
+   * git config --global user.email "stupid@yahoo.com"
    * git config --global credential.helper cache
    * git config --global credential.helper 'cache --timeout=3600'
    * cd
