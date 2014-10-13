@@ -3,11 +3,16 @@
 
 #include <string>
 
+#include "Gate.h"
+
 using namespace std;
 
 class Plan {
  public:
     string DummyFunction();
+    Gate GateHead;
+    int RecursionCallCount;
+    int RecursionMaxDepth;
 };
 
 #endif

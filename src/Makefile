@@ -4,7 +4,7 @@
 
 CXXFLAGS=-Wall -g
 
-OBJ = OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o RequirementNode.o ProvidesNode.o EntityDefinition.o main.o
+OBJ = LineItem.o OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o EntityTypeHelper.o EntityDefinition.o Gate.o HierarchicalId.o Utils.o main.o
 
 $(ODIR)/%.o: %.c $(DEPS)
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
@@ -12,15 +12,18 @@ $(ODIR)/%.o: %.c $(DEPS)
 arch_test: $(OBJ)
 	$(CXX) -o $@ $^ $(CXXFLAGS)
 
-OfficialData.o : OfficialData.h EntityDefinition.h RequirementNode.h ProvidesNode.h
+LineItem.o : LineItem.h
+OfficialData.o : OfficialData.h EntityDefinition.h LineItem.h Utils.h
 Supply.o : Supply.h
 TrackedResources.o : TrackedResources.h
 Cost.o : Cost.h
 Plan.o : Plan.h
-Planners.o : Planners.h EntityDefinition.h OfficialData.h Supply.h TrackedResources.h Cost.h Plan.h
-RequirementNode.o : RequirementNode.h EntityDefinition.h
-ProvidesNode.o: ProvidesNode.h EntityDefinition.h
+Planners.o : Planners.h EntityDefinition.h OfficialData.h Supply.h TrackedResources.h Cost.h Plan.h LineItem.h
+EntityTypeHelper.o : EntityTypeHelper.h HierarchicalId.h
 EntityDefinition.o : EntityDefinition.h
+Gate.o : LineItem.h
+HierarchicalId.o : HierarchicalId.h
+Utils.o : Utils.h
 main.o : OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h
 
 

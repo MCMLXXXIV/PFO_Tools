@@ -9,25 +9,27 @@ class TrackedResources;
 class Cost;
 class Plan;
 class OfficialData;
+class LineItem;
+class Gate;
 
 using namespace std;
 
 class Planners {
  public:
-    static bool CreatePlanForItemsGoal(list<EntityDefinition> items,
-				       Supply bank,
-				       TrackedResources trackedResources,
+    static Plan* CreatePlanForItemsGoal(LineItem *items,
+				       Supply &bank,
+				       TrackedResources &trackedResources,
 				       Cost &cost,
-				       Supply &remainder,
-				       Plan &plan,
 				       OfficialData &rulesGraph);
  private:
-    static bool CreatePlanForItemGoal(EntityDefinition &item,
-				      Supply &bank,
-				      TrackedResources &trackedResources,
-				      Cost &cost,
-				      Plan &plan,
-				      OfficialData &rulesGraph);
+    static Gate* GetPlanStep(LineItem *req,
+		      Supply &bank,
+		      TrackedResources &trackedResources,
+		      Cost &cost,
+		      OfficialData &rulesGraph,
+		      int depth,
+		      int &maxDepth,
+		      int &callCount);
 };
 
 

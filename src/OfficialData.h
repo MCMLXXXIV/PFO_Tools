@@ -14,12 +14,13 @@ class OfficialData {
  public:
     OfficialData();
     int ProcessSpreadsheetDir(string dirname);
+    EntityDefinition* GetEntity(string name);
     
  private:
     bool ParseAndStoreCraftingRecipeFile(string fn);
     bool ParseAndStoreRefiningRecipeFile(string fn);
 
-    bool ParseAndStoreRecipeFile(string fn, EntitySubType subtype);
+    bool ParseAndStoreRecipeFile(string fn, string subtype);
 
     map< string, EntityDefinition* > Entities;
     map< string, FileProcessor > FileProcessorMap;

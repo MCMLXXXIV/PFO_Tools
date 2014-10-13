@@ -5,13 +5,16 @@
 #include <list>
 
 class EntityDefinition;
+class LineItem;
 
 using namespace std;
 
 class Supply {
  public:
     list<EntityDefinition> Items;
-    string DummyFunction();
+    bool Has(EntityDefinition *entity);
+    double Withdrawal(LineItem *item);
+    void Deposit(LineItem *item);
 };
 
 

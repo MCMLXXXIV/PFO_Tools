@@ -3,14 +3,11 @@
 
 #include <string>
 #include <list>
+#include <vector>
 
-class RequirementNode;
-class ProvidesNode;
+class LineItem;
 
 using namespace std;
-
-enum EntityType { Item, Recipe, Achievement, Feat, Skill };
-enum EntitySubType { None, Refine, Craft };
 
 class EntityDefinition {
 
@@ -19,14 +16,11 @@ class EntityDefinition {
 
     string Name;
     bool ProcessedSpreadsheetDefinition;
-    EntityType Type;
-    EntitySubType SubType;
     int CreationIncrement;
-    bool Universal;
+    short* Type; // will be an array of shorts
 
-    list< RequirementNode* > Requirements;
-    list< ProvidesNode* > Provides;
-
+    vector < list < LineItem* > > Requirements;
+    vector < list < LineItem* > > Provides;
 };
 
 #endif

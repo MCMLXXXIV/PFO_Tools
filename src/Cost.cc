@@ -1,3 +1,6 @@
 #include "Cost.h"
+#include "LineItem.h"
 
-string Cost::DummyFunction() { return "foo"; }
+void Cost::Add(LineItem *item) {
+    TempCostList.push_back(new LineItem(item->Entity, item->Quantity));
+}

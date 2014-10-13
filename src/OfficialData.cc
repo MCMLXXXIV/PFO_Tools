@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <cstdlib>
+#include <cassert>
 
 #include <stdlib.h>
 #include <dirent.h>
@@ -14,14 +15,25 @@
 
 #include "OfficialData.h"
 #include "EntityDefinition.h"
-#include "RequirementNode.h"
-#include "ProvidesNode.h"
+#include "EntityTypeHelper.h"
+#include "LineItem.h"
+#include "Utils.h"
 
 using namespace std;
 
 OfficialData::OfficialData() {
     FileProcessorMap["Recipes (Crafting).csv"] = &OfficialData::ParseAndStoreCraftingRecipeFile;
     FileProcessorMap["Recipes (Refining).csv"] = &OfficialData::ParseAndStoreRefiningRecipeFile;
+}
+
+EntityDefinition* OfficialData::GetEntity(string name) {
+    map< string, EntityDefinition* >::iterator entityMapEntry;
+    entityMapEntry = Entities.find(name);
+    if (entityMapEntry == Entities.end()) {
+	return NULL;
+    } else {
+	return (*entityMapEntry).second;
+    }
 }
 
 int OfficialData::ProcessSpreadsheetDir(string directoryName) {
@@ -59,21 +71,23 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
 }
 
 bool OfficialData::ParseAndStoreCraftingRecipeFile(string fn) {
-    return this->ParseAndStoreRecipeFile(fn, Craft);
+    return this->ParseAndStoreRecipeFile(fn, "Craft");
 }
 
 bool OfficialData::ParseAndStoreRefiningRecipeFile(string fn) {
-    return this->ParseAndStoreRecipeFile(fn, Refine);
+    return this->ParseAndStoreRecipeFile(fn, "Refine");
 }
 
-bool OfficialData::ParseAndStoreRecipeFile(string fn, EntitySubType subtype) {
+bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
     // open the file named fn
     // parse the data cells
     // foreach row
     //    make an entity definition and fill it out
     //    store the entity in the global entity map by the name
 
-    cout << "+++ RAN: OfficialData::ParseAndStoreRecipeFile()" << endl;
+    cout << "+++ RUNNING: OfficialData::ParseAndStoreRecipeFile(" << fn << ")" << endl;
+
+    EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
 
     ifstream fin(fn.c_str());
     if (!fin.is_open()) {
@@ -127,94 +141,148 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, EntitySubType subtype) {
 	    continue;
 	}
 
+	string *name = new string(fields[1]);
+	int rankInName;
+	char *namePart;
+	if (Utils::RankInName(name->c_str(), &namePart, rankInName)) {
+	    // if (regex_search(name, " \+[0-9]+$")) {
+	    // cout << endl << namePart << "; Rank " << rankInName << " (from [" << *name << "])" << endl;
+	    delete name;
+	    name = new string(namePart);
+	    delete namePart;
+	    // right now we aren't storing entities for +1 and greater items
+	    // there is much we would have to add to support this - right now for ranked
+	    // items there is no other Quantity, so the Quantity in the LineItem does double
+	    // duty for ranks and actual quantities.  But when we add Quantities of Ranked items
+	    // (like 5 x "Steel Wire +1") then we will have to revamp the LineItem class.
+	    if (rankInName > 0) {
+		delete name;
+		continue;
+	    }		
+	}
+
+	if (*name == "Yew Stave") {
+	    cout << endl << "Yew Stave Entity" << endl;
+	}
+
 	// see if something else already added an entity for this (eg, if the entity was listed
 	// as a component for another Entity)
 	map< string, EntityDefinition* >::iterator entityMapEntry;
 	EntityDefinition *entity;
-	entityMapEntry = Entities.find(fields[1]);
+	entityMapEntry = Entities.find(*name);
 	if (entityMapEntry != Entities.end()) {
 	    entity = (*entityMapEntry).second;
+
+	    // only add a Requirements and Provides list if we process the Entity from the spreadsheet
+	    if (entity->Requirements.size() < 1) {
+		entity->Requirements.push_back(*(new list<LineItem*>));
+		entity->Provides.push_back(*(new list<LineItem*>));
+	    }
+	    assert(entity->ProcessedSpreadsheetDefinition == false);
 	    cout << ".";
 	} else {
 	    cout << "+";
 	    // I could (should?) check that these fields were set correctly the first time - but lets call that a todo
 	    entity = new EntityDefinition();
-	    entity->Name = fields[1];
-	    entity->Type = Recipe;
-	    entity->SubType = subtype;
+	    entity->Name = *name;
 
-	    // TODO FIXME TEST
-	    // soon I'll add code to consume the secondary, crowd sourced, table that give the yield
-	    // for refining stuff - for now, in order to do some testing of the goal solution code,
-	    // I'm going to make it a random number
-	    if (subtype == Refine) {
-		entity->CreationIncrement = (rand() % 4) + 1;
-	    } else {
-		entity->CreationIncrement = 1;
-	    }
-	    entity->Universal = false;
+	    list<string> typeFields;
+	    typeFields.push_back("Item");
+	    typeFields.push_back(*name);
+	    entity->Type = typeHelper->GetType(typeFields);
 
-	    Entities[fields[1]] = entity;
+	    // right now, Items aren't ranked - but we could extend this later to have a +1 item be rank two, etc
+	    // still, we need to create the requirements and provides lists for the single rank
+	    entity->Requirements.push_back(*(new list<LineItem*>));
+	    entity->Provides.push_back(*(new list<LineItem*>));
+
+	    Entities[*name] = entity;
+	}
+	// TODO FIXME TEST
+	// soon I'll add code to consume the secondary, crowd sourced, table that give the yield
+	// for refining stuff - for now, in order to do some testing of the goal solution code,
+	// I'm going to make it a random number
+	if (subtype == "Refine") {
+	    entity->CreationIncrement = (rand() % 4) + 1;
+	} else {
+	    entity->CreationIncrement = 1;
 	}
 	entity->ProcessedSpreadsheetDefinition = true;
 	
-	RequirementNode *req;
+	LineItem *req;
 
 	// time requirement
-	req = new RequirementNode();
-	req->Type = Time;
-	req->Entity = NULL;
-	req->QuantityValue._lval = atol(fields[14].c_str());
-	entity->Requirements.push_back(req);
+	req = new LineItem();
+	req->Entity = Entities["Time"];
+	if (req->Entity == NULL) {
+	    list<string> typeFields;
+	    typeFields.push_back("Time");
+
+	    req->Entity = new EntityDefinition();
+	    req->Entity->Name = "Time";
+	    req->Entity->Type = typeHelper->GetType(typeFields);
+	    Entities["Time"] = req->Entity;
+	}
+	req->Quantity = atoi(fields[14].c_str());
+	entity->Requirements[0].push_back(req);
 
 	// Skill requirement
-	string skillName = fields[2] + " " + fields[3];
-	req = new RequirementNode();
-	req->Type = Entity;
-	EntityDefinition *reqEntity;
-	entityMapEntry = Entities.find(skillName);
-	if (entityMapEntry != Entities.end()) {
-	    reqEntity = (*entityMapEntry).second;
-	    cout << ".";
+	string skillName = fields[2];
+	int skillLevel = atoi(fields[3].c_str());
+
+	req = new LineItem();
+	req->Entity = Entities[skillName];
+	if (req->Entity != NULL) {
+	    cout << "_";
 	} else {
 	    cout << "+";
-	    reqEntity = new EntityDefinition();
-	    reqEntity->Name = skillName;
-	    reqEntity->Type = Skill;
-	    reqEntity->SubType = Craft;
-	    reqEntity->ProcessedSpreadsheetDefinition = false;
-	    reqEntity->Universal = true;
-	    Entities[skillName] = reqEntity;
+	    list<string> typeFields;
+	    typeFields.push_back("Skill");
+	    typeFields.push_back(subtype);
+	    typeFields.push_back(skillName);
+
+	    req->Entity = new EntityDefinition();
+	    req->Entity->Name = skillName;
+	    req->Entity->Type = typeHelper->GetType(typeFields);
+	    req->Entity->ProcessedSpreadsheetDefinition = false;
+	    Entities[skillName] = req->Entity;
 	}
-	req->Entity = reqEntity;
-	entity->Requirements.push_back(req);
+	req->Quantity = skillLevel;
+	entity->Requirements[0].push_back(req);
 	
 	// now all the components - we only have three per recipe right now but I think there
 	// is space in here for four.
 	for (int componentOffset = 5; componentOffset < 10; componentOffset += 2) {
 	    if (fields[componentOffset].size() < 1) { continue; }
 	    string componentName = fields[componentOffset];
-	    entityMapEntry = Entities.find(componentName);
-	    if (entityMapEntry != Entities.end()) {
-		reqEntity = (*entityMapEntry).second;
-		cout << ".";
-	    } else {
-		cout << "+";
-		reqEntity = new EntityDefinition();
-		reqEntity->Name = componentName;
-		reqEntity->Type = Item;
-		reqEntity->SubType = None;
-		reqEntity->ProcessedSpreadsheetDefinition = false;
-		reqEntity->Universal = false;
-		Entities[componentName] = reqEntity;
+
+	    req = new LineItem();
+	    req->Entity = Entities[componentName];
+
+	    if (componentName == "Yew Stave") {
+		cout << endl << "Yew Stave Component" << endl;
 	    }
-	    req = new RequirementNode();
-	    req->Type = Entity;
-	    req->Entity = reqEntity;
-	    req->QuantityValue._lval = atol(fields[componentOffset+1].c_str());
-	    entity->Requirements.push_back(req);	    
+
+	    if (req->Entity != NULL) {
+		cout << "@";
+	    } else {
+		cout << "P";
+		list<string> typeFields;
+		typeFields.push_back("Item");
+		typeFields.push_back(componentName);
+
+		req->Entity = new EntityDefinition();
+		req->Entity->Name = componentName;
+		req->Entity->Type = typeHelper->GetType(typeFields);
+		req->Entity->ProcessedSpreadsheetDefinition = false;
+		Entities[componentName] = req->Entity;
+	    }
+	    req->Quantity = atoi(fields[componentOffset+1].c_str());
+	    entity->Requirements[0].push_back(req);	    
 	}
-	// cout << "[" << fields[1] << "] <-> [" << fields[15] << "]" << endl;
+	
+	delete name;
+	// cout << "[" << *name << "] <-> [" << fields[15] << "]" << endl;
     }
     
 

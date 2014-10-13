@@ -34,13 +34,20 @@ an OfficialData object.
 
 As of this checkin, there are only handlers for the Recipes (Crafting).csv, Recipes (Refining).csv.
 
-I am working on designing and prototyping the solution code which will, given a goal (item) and a bank,
-figure out the qty of raw materials that need to be gathered and the refining/crafting time required
-to complete the item/goal.
+The first solution planner (for items) is in and working - but not yet complete (see TODOs).
+
 
 TODO
 ====
 
+[ ] Make the OfficialData a singleton and
+  [ ] remove the OfficialData arg from the planners
+[ ] Work on Supply implementation
+[ ] Work in TrackedResources implementation
+[ ] Add handler and howto for consuming the quantiites resulting from crafting - IE, one "craft" of Hemp Twine makes about 20 items
+[ ] Skill Processor
+
+Nice to have:
 I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but
 for now I'll just write stuff to stdout.
 
