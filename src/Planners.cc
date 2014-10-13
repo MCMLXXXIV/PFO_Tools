@@ -80,7 +80,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
     if (EntityTypeHelper::Instance()->IsRanked(req->Entity->Type[0])) {
 	// I fear rounding error - but in the case of Ranked entities, the Qty should always
 	// be a whole number.
-	int rank = int(req->Quantity + 0.1);
+	unsigned rank = unsigned(req->Quantity + 0.1);
 	// TODO - until I finish the parsers, some entities will have incomplete data
 	if (req->Entity->Requirements.size() < 1) {
 	    cout << "WARNING: this ranked Entity has no processed requirements; name: " << req->Entity->Name << endl;
@@ -101,7 +101,13 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}
     }
 
+    double remainder = 0.0;
+    int manufactureCycles = 1;
     list< LineItem* >::iterator reqEntry = reqs->begin();
+    if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item")) {
+	manufactureCycles = int(ceil(needed / req->Entity->CreationIncrement));
+	remainder = (req->Entity->CreationIncrement * manufactureCycles) - needed;
+    }
     for (; reqEntry != reqs->end(); reqEntry++) {
 	LineItem *subReq = *reqEntry;
 	if (!trackedResources.IsTracked(subReq->Entity->Type)) { continue; }
@@ -110,23 +116,13 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	    cout << req->Entity->Name << " skipping or gate" << endl;
 	    return gate;
 	}
-	
-	double remainder = 0.0;
+
 	LineItem *gateReq = new LineItem(*subReq);
 	if (EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "Item")) {
-	    int factor = int(ceil(needed / req->Entity->CreationIncrement));
-	    gateReq->Quantity = gateReq->Quantity * factor;
-	    remainder = (req->Entity->CreationIncrement * factor) - needed;
+	    gateReq->Quantity = gateReq->Quantity * manufactureCycles;
 	}
+	
 	(gate->GateTree).push_back(GetPlanStep(gateReq, bank, trackedResources, cost, rulesGraph, depth+1, maxDepth, callCount));
-	if (remainder != 0.0) {
-	    // BUG HERE  We will be adding too many things to the bank when an item has more than
-	    // one item subReq.  IE, we will add the remainder on the first subitem, on the second 
-	    // subitme, and etc.
-	    assert(remainder >= 1.0); // I fear rounding error
-	    LineItem *newBankItem = new LineItem(req->Entity, remainder);
-	    bank.Deposit(newBankItem);
-	}
 	newGates++;	
     }
 
@@ -136,6 +132,17 @@ Gate* Planners::GetPlanStep(LineItem *req,
     }
     if (newGates < 1) {
 	cost.Add(req);
+    }
+
+    // only add the remainder if thre is one - that is, if we created the item.  And we will
+    // only have created the item if there were new gates added.
+    if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item")) {
+	// there will only be remainders for items
+	if (remainder != 0.0) {
+	    assert(remainder >= 1.0); // I fear rounding error
+	    LineItem *newBankItem = new LineItem(req->Entity, remainder);
+	    bank.Deposit(newBankItem);
+	}
     }
 
     cout << "handled " << req->Quantity << " of " << req->Entity->Name << " with " << newGates << " new gates" << endl;
