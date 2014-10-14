@@ -275,6 +275,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 		req->Entity->Name = componentName;
 		req->Entity->Type = typeHelper->GetType(typeFields);
 		req->Entity->ProcessedSpreadsheetDefinition = false;
+		req->Entity->CreationIncrement = 1;
 		Entities[componentName] = req->Entity;
 	    }
 	    req->Quantity = atoi(fields[componentOffset+1].c_str());

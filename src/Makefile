@@ -30,4 +30,4 @@ main.o : OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h
 .PHONY: clean
 
 clean:
-	rm -f *.o *~ core
+	rm -f *.o *~ core arch_test

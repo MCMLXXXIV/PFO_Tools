@@ -83,3 +83,28 @@ bool EntityTypeHelper::IsUniversal(short type) {
 bool EntityTypeHelper::IsRanked(short type) {
     return RankedFlagByLevelOneTypeId[type];
 }
+
+int EntityTypeHelper::GetMaxEntityId(short* typeCategory) {
+    HierarchicalId *idsList = &IdRoot;
+    if (typeCategory != NULL) {
+	int categoryIndex = 0;
+	while (typeCategory[categoryIndex] != 0) {
+	    HierarchicalId *nextIdList = NULL;
+	    map<string, HierarchicalId*>::iterator itr = idsList->NextLevel.begin();
+	    for (; itr != idsList->NextLevel.end(); ++itr) {
+		if ((*itr).second->Index == (int)typeCategory[categoryIndex]) {
+		    nextIdList = (*itr).second;
+		    break;
+		}
+	    }
+	    if (itr != idsList->NextLevel.end()) {
+		// they asked for an id that is out of bounds
+		return -1;
+	    }
+	    idsList = nextIdList;
+	    ++categoryIndex;
+	}
+    }
+    return idsList->NextLevel.size();
+}
+

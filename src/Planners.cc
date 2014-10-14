@@ -105,6 +105,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
     int manufactureCycles = 1;
     list< LineItem* >::iterator reqEntry = reqs->begin();
     if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item")) {
+	assert(req->Entity->CreationIncrement > 0);
 	manufactureCycles = int(ceil(needed / req->Entity->CreationIncrement));
 	remainder = (req->Entity->CreationIncrement * manufactureCycles) - needed;
     }
