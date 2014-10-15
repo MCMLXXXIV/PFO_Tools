@@ -18,6 +18,7 @@ class EntityTypeHelper {
     bool IsRanked(short type);
     bool IsType(short typeId, string typeStr);
     int GetMaxEntityId(short* typeCategory);
+    string ToIdString(short *type);
 
  private:
     HierarchicalId IdRoot;

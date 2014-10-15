@@ -1,39 +1,44 @@
 #include "TrackedResources.h"
 #include "EntityTypeHelper.h"
 
-void TrackedResources::SetTracked(list<short[]> tracked) {
+using namespace std;
+
+void TrackedResources::SetTracked(list<short*> tracked) {
     int maxTopLevelEntityId = EntityTypeHelper::Instance()->GetMaxEntityId(NULL);
     set<short> trackedTopLevelTypes;
-    list<short[]>::iterator itr;
+    list<short*>::iterator itr;
     for (itr = tracked.begin(); itr != tracked.end(); ++itr) {
-	//EntityTypeHelper::Instance()->
+	if ((*itr) != NULL && **itr != 0) {
+	    trackedTopLevelTypes.insert(**itr);
+	}
+    }
+    
+    for (int topLevelEntityId = 0; topLevelEntityId < maxTopLevelEntityId; ++topLevelEntityId) {
+	if (trackedTopLevelTypes.count((short)topLevelEntityId) == 0) {
+	    NotTrackedByInternalTypeKey[to_string(topLevelEntityId)] = true;
+	}
     }
 
-    // TODO
-    foreach (type in tracked) {
+    for (itr = tracked.begin(); itr != tracked.end(); ++itr) {
 	string key = "";
+	short *type = *itr;
 	for (int idx = 0; type[idx] > 0; ++idx) {
 	    if (key.size() < 1) { key += "."; }
-	    key += itoa(type[idx]);
+	    key += to_string(type[idx]);
 	}
-	IsTrackedMap[key] = true;
+	TrackedByInternalTypeKey[key] = true;
     }
 
     return;
 }
 
-
-
-
 bool TrackedResources::IsTracked(short *type) {
-
-    // TODO
     string key = "";
     for (int idx = 0; type[idx] > 0; ++idx) {
 	if (key.size() < 1) { key += "."; }
-	key += itoa(type[idx]);
-	if (NotTrackedMap[key]) { return false; }
-	if (IsTrackedMap[key]) { return true; }
+	key += to_string(type[idx]);
+	if (NotTrackedByInternalTypeKey[key]) { return false; }
+	if (TrackedByInternalTypeKey[key]) { return true; }
     }
     return false;
 }

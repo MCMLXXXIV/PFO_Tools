@@ -9,7 +9,6 @@
 #include "TrackedResources.h"
 #include "Cost.h"
 #include "Plan.h"
-#include "OfficialData.h"
 
 using namespace std;
 
@@ -17,10 +16,9 @@ using namespace std;
 // Fills out the plan.GateHead.GateTree
 //
 Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
-				      Supply &bank,
-				      TrackedResources &trackedResources,
-				      Cost &cost,
-				      OfficialData &rulesGraph)
+				       Supply &bank,
+				       TrackedResources &trackedResources,
+				       Cost &cost)
 {
     if (goal == NULL) {
 	cout << "Planners::CreatePlanForItemsGoal() called with zero items" << endl;
@@ -31,7 +29,7 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
     int maxDepth = 0;
 
     Plan *plan = new Plan();
-    Gate *gate = GetPlanStep(goal, bank, trackedResources, cost, rulesGraph, 1, maxDepth, callCount);
+    Gate *gate = GetPlanStep(goal, bank, trackedResources, cost, 1, maxDepth, callCount);
     plan->GateHead.GateTree.push_back(gate);
 
     plan->RecursionCallCount = callCount;
@@ -43,7 +41,6 @@ Gate* Planners::GetPlanStep(LineItem *req,
 			    Supply &bank,
 			    TrackedResources &trackedResources,
 			    Cost &cost,
-			    OfficialData &rulesGraph,
 			    int depth,
 			    int &maxDepth,
 			    int &callCount)
@@ -119,11 +116,12 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}
 
 	LineItem *gateReq = new LineItem(*subReq);
-	if (EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "Item")) {
+	if (EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "Item") ||
+	    EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "Time")) {
 	    gateReq->Quantity = gateReq->Quantity * manufactureCycles;
 	}
 	
-	(gate->GateTree).push_back(GetPlanStep(gateReq, bank, trackedResources, cost, rulesGraph, depth+1, maxDepth, callCount));
+	(gate->GateTree).push_back(GetPlanStep(gateReq, bank, trackedResources, cost, depth+1, maxDepth, callCount));
 	newGates++;	
     }
 

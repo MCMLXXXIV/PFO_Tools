@@ -9,10 +9,11 @@ using namespace std;
 
 class TrackedResources {
  public:
-    void SetTracked(list<short[]> tracked);
+    void SetTracked(list<short*> tracked);
     bool IsTracked(short *type); // short array terminated by 0 val
  private:
     map<string, bool> TrackedByInternalTypeKey;
+    map<string, bool> NotTrackedByInternalTypeKey;
 };
 
 #endif

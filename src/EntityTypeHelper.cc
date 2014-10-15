@@ -108,3 +108,13 @@ int EntityTypeHelper::GetMaxEntityId(short* typeCategory) {
     return idsList->NextLevel.size();
 }
 
+string EntityTypeHelper::ToIdString(short *type) {
+    string key = "";
+    if (type == NULL) { return ""; }
+
+    for (int idx = 0; type[idx] > 0; ++idx) {
+	if (key.size() < 1) { key += "."; }
+	key += to_string(type[idx]);
+    }
+    return key;
+}

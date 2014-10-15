@@ -11,6 +11,7 @@ using namespace std;
 class Cost {
  public:
     void Add(LineItem *item);
+    void Dump();
 
  private:
     list< LineItem* > TempCostList;

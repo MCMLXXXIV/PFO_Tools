@@ -19,14 +19,13 @@ class Planners {
     static Plan* CreatePlanForItemsGoal(LineItem *items,
 				       Supply &bank,
 				       TrackedResources &trackedResources,
-				       Cost &cost,
-				       OfficialData &rulesGraph);
+				       Cost &cost
+				       );
  private:
     static Gate* GetPlanStep(LineItem *req,
 		      Supply &bank,
 		      TrackedResources &trackedResources,
 		      Cost &cost,
-		      OfficialData &rulesGraph,
 		      int depth,
 		      int &maxDepth,
 		      int &callCount);

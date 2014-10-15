@@ -2,7 +2,7 @@
 #  beginner makefile
 #
 
-CXXFLAGS=-Wall -g
+CXXFLAGS=-Wall -g -std=c++0x
 
 OBJ = LineItem.o OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o EntityTypeHelper.o EntityDefinition.o Gate.o HierarchicalId.o Utils.o main.o
 
