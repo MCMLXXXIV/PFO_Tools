@@ -118,3 +118,26 @@ string EntityTypeHelper::ToIdString(short *type) {
     }
     return key;
 }
+
+list<string> EntityTypeHelper::GetType(short* type) {
+    list<string> retVal;
+    if (type == NULL) { return retVal; }
+
+    HierarchicalId *idObject = &IdRoot;
+    map<string, HierarchicalId*> *subIds = &(IdRoot.NextLevel);
+    while (*type != 0 && subIds != NULL) {
+	// this is ugly - need to make a map for this
+	map<string, HierarchicalId*> *nextSubIdLevel = NULL;
+	map<string, HierarchicalId*>::iterator itr = subIds->begin();
+	for (; itr != subIds->end(); ++itr) {
+	    if ( (*itr).second->Index == *type ) {
+		retVal.push_back((*itr).first);
+		++type;
+		nextSubIdLevel = &( (*itr).second->NextLevel );
+		break;
+	    }
+	}
+	subIds = nextSubIdLevel;
+    }
+    return retVal;
+}

@@ -19,6 +19,7 @@ class EntityTypeHelper {
     bool IsType(short typeId, string typeStr);
     int GetMaxEntityId(short* typeCategory);
     string ToIdString(short *type);
+    list<string> GetType(short* type);
 
  private:
     HierarchicalId IdRoot;

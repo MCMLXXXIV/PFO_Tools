@@ -29,7 +29,8 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
     int maxDepth = 0;
 
     Plan *plan = new Plan();
-    Gate *gate = GetPlanStep(goal, bank, trackedResources, cost, 1, maxDepth, callCount);
+    Gate *gate = GetPlanStep(goal, bank, trackedResources, cost, false, 1, maxDepth, callCount);
+
     plan->GateHead.GateTree.push_back(gate);
 
     plan->RecursionCallCount = callCount;
@@ -41,6 +42,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 			    Supply &bank,
 			    TrackedResources &trackedResources,
 			    Cost &cost,
+			    bool productConsumed,
 			    int depth,
 			    int &maxDepth,
 			    int &callCount)
@@ -71,7 +73,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 
     // get the requirements for the requested rank
     // as of this writing, skills, achievements, and feats have ranks
-    // all the other (like Items, Time, etc) do not
+    // all the others (like Items, Time, etc) do not
     // though I am toying with the idea of ranking items too - to track +1, +2 things, etc
     list < LineItem* > *reqs = NULL;
     if (EntityTypeHelper::Instance()->IsRanked(req->Entity->Type[0])) {
@@ -98,6 +100,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}
     }
 
+    bool willBeConsumed = productConsumed;
     double remainder = 0.0;
     int manufactureCycles = 1;
     list< LineItem* >::iterator reqEntry = reqs->begin();
@@ -105,6 +108,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	assert(req->Entity->CreationIncrement > 0);
 	manufactureCycles = int(ceil(needed / req->Entity->CreationIncrement));
 	remainder = (req->Entity->CreationIncrement * manufactureCycles) - needed;
+	willBeConsumed = true;
     }
     for (; reqEntry != reqs->end(); reqEntry++) {
 	LineItem *subReq = *reqEntry;
@@ -121,12 +125,19 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	    gateReq->Quantity = gateReq->Quantity * manufactureCycles;
 	}
 	
-	(gate->GateTree).push_back(GetPlanStep(gateReq, bank, trackedResources, cost, depth+1, maxDepth, callCount));
+	//---------------------------------------------------------------------//
+	//                            RECURSION HERE                           //
+	//---------------------------------------------------------------------//
+	(gate->GateTree).push_back(GetPlanStep(gateReq, bank, trackedResources, cost, willBeConsumed, depth+1, maxDepth, callCount));
+
 	newGates++;	
     }
 
     if (EntityTypeHelper::Instance()->IsUniversal(req->Entity->Type[0])) {
 	// for example, skills, achievements, ability scores
+	bank.Deposit(req);
+    } else if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item") && productConsumed == false) {
+	// for example, the item goal(s)
 	bank.Deposit(req);
     }
     if (newGates < 1) {

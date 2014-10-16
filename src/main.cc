@@ -8,27 +8,46 @@
 #include "TrackedResources.h"
 #include "Cost.h"
 #include "Plan.h"
+#include "Utils.h"
 
 using namespace std;
 
 int main() {
-
+    
     OfficialData rulesGraph;
     rulesGraph.ProcessSpreadsheetDir("official_data");
 
-    EntityDefinition *entity = rulesGraph.GetEntity("Hunter's Longbow");
+    EntityDefinition *headEntity = new EntityDefinition();
+    headEntity->Name = "LogicAnd";
+    list<string> typeStringName;
+    typeStringName.push_back("LogicAnd");
+
+    headEntity->Type = EntityTypeHelper::Instance()->GetType(typeStringName);
+
     // entity = rulesGraph.GetEntity("Pot Steel Plate");
     // entity = rulesGraph.GetEntity("Journeyman's Speed Potion");
-    assert(entity != NULL);
     
+    headEntity->Requirements.push_back(list<LineItem*>());
+
+    EntityDefinition *entity = rulesGraph.GetEntity("Hunter's Longbow");
+    assert(entity != NULL);
     LineItem *stuff = new LineItem(entity, 2.0);
+    headEntity->Requirements[0].push_back(stuff);
+
+    entity = rulesGraph.GetEntity("Yew and Iron Splint");
+    assert(entity != NULL);
+    stuff = new LineItem(entity, 1.0);
+    headEntity->Requirements[0].push_back(stuff);
+
+    LineItem *headGoal = new LineItem(headEntity, 1.0);
+
     Supply bank;
 
     TrackedResources trackedResources;
-    list<string> typeStringName;
 
     list<short*> trackedTypes;
 
+    typeStringName.clear();
     typeStringName.push_back("Item");
     trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
@@ -49,7 +68,7 @@ int main() {
     Cost cost;
     Supply remainder;
     Plan *plan;
-    plan = Planners::CreatePlanForItemsGoal(stuff, bank, trackedResources, cost);
+    plan = Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
 
     cout << endl;
     cout << "Cost:" << endl;
@@ -61,4 +80,17 @@ int main() {
     cout << endl;
 
     return 0;
+}
+
+
+void TestUtilsSplit() {
+
+    list<string> foo = Utils::SplitCommaSeparatedValuesWithQuotedFields("foo,bar ,\"choo,crab\", ,blue, green, \"in, out \", red \"and, this\", "" , \"rog ");
+    list<string>::iterator fItr;
+    int idx = 0;
+    for (fItr = foo.begin(); fItr != foo.end(); ++fItr) {
+	cout << idx << " [" << *fItr << "]" << endl;
+	++idx;
+    }
+    return;
 }

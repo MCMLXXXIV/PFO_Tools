@@ -23,12 +23,13 @@ class Planners {
 				       );
  private:
     static Gate* GetPlanStep(LineItem *req,
-		      Supply &bank,
-		      TrackedResources &trackedResources,
-		      Cost &cost,
-		      int depth,
-		      int &maxDepth,
-		      int &callCount);
+			     Supply &bank,
+			     TrackedResources &trackedResources,
+			     Cost &cost,
+			     bool productConsumed,
+			     int depth,
+			     int &maxDepth,
+			     int &callCount);
 };
 
 
