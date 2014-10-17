@@ -44,7 +44,8 @@ TODO
   - [x] remove the OfficialData arg from the planners
 - [x] Work on Supply implementation
 - [x] Work in TrackedResources implementation
-- [ ] Flesh out the Cost classes to enable rich/informative display of the cost of meeting a goal.
+- [x] Flesh out the Cost classes to enable rich/informative display of the cost of meeting a goal.
+- [ ] Add achievement flag to Provides list for crafting recipes
 - [ ] Add handler and howto for consuming the quantiites resulting from crafting - IE, one "craft" of Hemp Twine makes about 20 items
 - [ ] Skill Processor
 

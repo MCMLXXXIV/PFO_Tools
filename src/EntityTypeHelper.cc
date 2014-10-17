@@ -7,9 +7,11 @@
 const string aTypes[] = {"AbilityScore","Achievement","AchievementPoint","ExperiencePoint","Feat","Item","LogicAnd","LogicOr","Recipe","Skill","Time"};
 const string uTypes[] = {"Achievement","Feat","Skill","AchievementPoint","AbilityScore"};
 const string rTypes[] = {"Achievement","Feat","Skill"};
+const string fTypes[] = {"AbilityScore"};
 const set<string> EntityTypeHelper::AllowedTopLevelTypes (aTypes, aTypes + sizeof(aTypes)/sizeof(aTypes[0]));
 const set<string> EntityTypeHelper::UniversalEntityTypes (uTypes, uTypes + sizeof(uTypes)/sizeof(uTypes[0]));
 const set<string> EntityTypeHelper::RankedEntityTypes (rTypes, rTypes + sizeof(rTypes)/sizeof(rTypes[0]));
+const set<string> EntityTypeHelper::DecimalEntityTypes (fTypes, fTypes + sizeof(fTypes)/sizeof(fTypes[0]));
 
 //const set<string> EntityTypeHelper::UniversalEntityTypes {"Achievement","Feat","Skill","AchievementPoint","AbilityScore"};
 //const set<string> EntityTypeHelper::RankedEntityTypes {"Achievement","Feat","Skill"};
@@ -52,6 +54,7 @@ short* EntityTypeHelper::GetType(list<string> names) {
 		assert(UniversalFlagByLevelOneTypeId.size() == nextId);
 		UniversalFlagByLevelOneTypeId.push_back(UniversalEntityTypes.count(name) > 0);
 		RankedFlagByLevelOneTypeId.push_back(RankedEntityTypes.count(name) > 0);
+		WholeNumberFlagByLevelOneTypeId.push_back(DecimalEntityTypes.count(name) < 1);
 		TopLevelTypes.push_back(name);
 	    }
 	    ids.push_back(nextId);
@@ -82,6 +85,10 @@ bool EntityTypeHelper::IsUniversal(short type) {
 
 bool EntityTypeHelper::IsRanked(short type) {
     return RankedFlagByLevelOneTypeId[type];
+}
+
+bool EntityTypeHelper::QuantityIsWholeNumber(short type) {
+    return WholeNumberFlagByLevelOneTypeId[type];
 }
 
 int EntityTypeHelper::GetMaxEntityId(short* typeCategory) {

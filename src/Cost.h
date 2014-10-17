@@ -6,20 +6,22 @@
 #include <map>
 
 class LineItem;
-class CostNode;
 
 using namespace std;
 
 class Cost {
  public:
-    void Add(LineItem *item);
-    // void Add(LineItem *item);
+    void Add(LineItem *item, string msg);
     void Dump();
 
  private:
-    // typeid to costNode
-    map<short, CostNode*> CostList;
-    list< LineItem* > TempCostList;
+    void Add(LineItem *item, string msg, int level);
+    void Dump(string);
+
+    map<short, Cost*> SubNodes;
+    short *Type;
+    list<string> Notes;
+    double Sum;
 };
 
 #endif

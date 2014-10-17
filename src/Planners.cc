@@ -29,7 +29,7 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
     int maxDepth = 0;
 
     Plan *plan = new Plan();
-    Gate *gate = GetPlanStep(goal, bank, trackedResources, cost, false, 1, maxDepth, callCount);
+    Gate *gate = GetPlanStep(goal, bank, trackedResources, cost, false, NULL, 1, maxDepth, callCount);
 
     plan->GateHead.GateTree.push_back(gate);
 
@@ -43,6 +43,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 			    TrackedResources &trackedResources,
 			    Cost &cost,
 			    bool productConsumed,
+			    LineItem *parentLineItem,
 			    int depth,
 			    int &maxDepth,
 			    int &callCount)
@@ -128,7 +129,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	//---------------------------------------------------------------------//
 	//                            RECURSION HERE                           //
 	//---------------------------------------------------------------------//
-	(gate->GateTree).push_back(GetPlanStep(gateReq, bank, trackedResources, cost, willBeConsumed, depth+1, maxDepth, callCount));
+	(gate->GateTree).push_back(GetPlanStep(gateReq, bank, trackedResources, cost, willBeConsumed, req, depth+1, maxDepth, callCount));
 
 	newGates++;	
     }
@@ -141,7 +142,28 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	bank.Deposit(req);
     }
     if (newGates < 1) {
-	cost.Add(req);
+	
+	string costMessage;
+	if (parentLineItem == NULL) {
+	    costMessage = req->Entity->Name;
+	} else {
+	    char buf[255];
+	    char *startHere = buf;
+	    if (EntityTypeHelper::Instance()->QuantityIsWholeNumber(req->Entity->Type[0])) {
+		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%0.f for ", req->Quantity);
+		startHere += charsAdded;
+	    } else {
+		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%.3f for ", req->Quantity);
+		startHere += charsAdded;
+	    }
+	    if (EntityTypeHelper::Instance()->QuantityIsWholeNumber(parentLineItem->Entity->Type[0])) {
+		snprintf(startHere, (254 - (startHere-buf)), "%0.f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
+	    } else {
+		snprintf(startHere, (254 - (startHere-buf)), "%.3f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
+	    }
+	    costMessage = buf;
+	}
+	cost.Add(req, costMessage);
     }
 
     // only add the remainder if thre is one - that is, if we created the item.  And we will

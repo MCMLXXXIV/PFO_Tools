@@ -27,6 +27,7 @@ class Planners {
 			     TrackedResources &trackedResources,
 			     Cost &cost,
 			     bool productConsumed,
+			     LineItem *parentLineItem,
 			     int depth,
 			     int &maxDepth,
 			     int &callCount);
