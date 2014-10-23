@@ -49,7 +49,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 			    int &callCount)
 {
     
-    cout << "Planners::GetPlanStep(" << req->Entity->Name << ")" << endl;
+    cout << "Planners::GetPlanStep(" << req->Entity->Name << "); depth: " << depth << endl;
 
     Gate *gate = new Gate();
     
@@ -90,12 +90,15 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	    reqs = new list< LineItem* >();
 	} else {
 	    reqs = &( req->Entity->Requirements[rank] );
+	    cout << "Have " << reqs->size() << " reqs for " << req->Entity->Name 
+		 << " rank " << rank << " of " << (req->Entity->Requirements.size()-1) << endl;
 	}	
     } else {
 	if (req->Entity->Requirements.size() < 1) {
 	    // for things like "Time" (or until I finish this program, Skills), there may be no sub reqs at all
 	    // in this case, make an empty req list so that we can continue normally
 	    reqs = new list< LineItem* >();
+	    cout << "*** no requirements for " << req->Entity->Name << endl;
 	} else {
 	    reqs = &( req->Entity->Requirements[0] );
 	}

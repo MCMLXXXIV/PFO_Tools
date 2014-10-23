@@ -32,7 +32,8 @@ The resulting binary, arch_test, opens the dir with the csv files (above) and go
 If the file name has a handler defined, it will read the file and store the results in
 an OfficialData object.
 
-As of this checkin, there are only handlers for the Recipes (Crafting).csv, Recipes (Refining).csv.
+As of this checkin, we handle a lot of the data files but I think there may still be some bugs.  I'll
+need to add a more detailed dumper of the entities to make sure of correctness.
 
 The first solution planner (for items) is in and working - but not yet complete (see TODOs).
 
@@ -47,7 +48,9 @@ TODO
 - [x] Flesh out the Cost classes to enable rich/informative display of the cost of meeting a goal.
 - [ ] Add achievement flag to Provides list for crafting recipes
 - [ ] Add handler and howto for consuming the quantiites resulting from crafting - IE, one "craft" of Hemp Twine makes about 20 items
-- [ ] Skill Processor
+- [x] Skill Processor
+- [ ] Add detailed Entity dumper to verify correct parsing
+- [ ] Make the make file build in an obj dir and store the resulting binary in a bin dir
 
 Nice to have:
 I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but

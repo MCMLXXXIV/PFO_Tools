@@ -120,7 +120,7 @@ string EntityTypeHelper::ToIdString(short *type) {
     if (type == NULL) { return ""; }
 
     for (int idx = 0; type[idx] > 0; ++idx) {
-	if (key.size() < 1) { key += "."; }
+	if (key.size() > 0) { key += "."; }
 	key += to_string(type[idx]);
     }
     return key;

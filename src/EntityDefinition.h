@@ -4,6 +4,7 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <iostream>
 
 class LineItem;
 
@@ -22,5 +23,7 @@ class EntityDefinition {
     vector < list < LineItem* > > Requirements;
     vector < list < LineItem* > > Provides;
 };
+
+ostream &operator<<(ostream &os, const EntityDefinition &item);
 
 #endif

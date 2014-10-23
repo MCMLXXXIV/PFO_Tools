@@ -1,5 +1,7 @@
 #include <cassert>
 #include <iostream>
+#include <vector>
+#include <string>
 
 #include "EntityTypeHelper.h"
 #include "OfficialData.h"
@@ -10,12 +12,18 @@
 #include "Plan.h"
 #include "Utils.h"
 
+void TestSplitKeyValueOnChar();
+
 using namespace std;
 
 int main() {
+
+    // TestSplitKeyValueOnChar(); return 0;
     
     OfficialData rulesGraph;
     rulesGraph.ProcessSpreadsheetDir("official_data");
+
+    // rulesGraph.Dump(); return;
 
     EntityDefinition *headEntity = new EntityDefinition();
     headEntity->Name = "LogicAnd";
@@ -82,11 +90,41 @@ int main() {
     return 0;
 }
 
+void TestSplitKeyValueOnChar() {
+    vector<string> tvalsA = {string("martial=6"), string(""), string(" craft = 4"), string("foo=  "), string("bar =6 "), string(" =7"), string("=8")};
+    vector<string> tvalsB = {string("martial or 6"), string(""), string(" craft  or  4"), string("foo or  "), string("bar  or 6 "), string(" or 7"), string(" or 8")};
+
+    vector<string>::iterator itr = tvalsA.begin();
+    for(; itr != tvalsA.end(); ++itr) {
+	string key, val;
+	bool retVal = Utils::SplitKeyValueOnChar((*itr).c_str(), "=", key, val);
+	if (retVal == true) {
+	    printf("%13s -> TRUE, [%s] [%s]\n", (*itr).c_str(), key.c_str(), val.c_str());
+	} else {
+	    printf("%13s -> FALS\n", (*itr).c_str());
+	}
+    }
+
+    cout << endl;
+
+    itr = tvalsB.begin();
+    for(; itr != tvalsB.end(); ++itr) {
+	string key, val;
+	bool retVal = Utils::SplitKeyValueOnChar((*itr).c_str(), " or ", key, val);
+	if (retVal == true) {
+	    printf("%13s -> TRUE, [%s] [%s]\n", (*itr).c_str(), key.c_str(), val.c_str());
+	} else {
+	    printf("%13s -> FALS\n", (*itr).c_str());
+	}
+    }
+
+}
+
 
 void TestUtilsSplit() {
 
-    list<string> foo = Utils::SplitCommaSeparatedValuesWithQuotedFields("foo,bar ,\"choo,crab\", ,blue, green, \"in, out \", red \"and, this\", "" , \"rog ");
-    list<string>::iterator fItr;
+    vector<string> foo = Utils::SplitCommaSeparatedValuesWithQuotedFields("foo,bar ,\"choo,crab\", ,blue, green, \"in, out \", red \"and, this\", "" , \"rog ");
+    vector<string>::iterator fItr;
     int idx = 0;
     for (fItr = foo.begin(); fItr != foo.end(); ++fItr) {
 	cout << idx << " [" << *fItr << "]" << endl;
