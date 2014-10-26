@@ -5,6 +5,7 @@
 #include <list>
 #include <vector>
 #include <iostream>
+#include <set>
 
 class LineItem;
 
@@ -15,6 +16,7 @@ class EntityDefinition {
  public:
     // EntityDefinition();
     static string Dump(const EntityDefinition &item);
+    bool HasRequirement(EntityDefinition* targetEntity, set<EntityDefinition*> &searched);
 
     string Name;
     bool ProcessedSpreadsheetDefinition;

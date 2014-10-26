@@ -15,12 +15,16 @@
 #include "CommandLineOptions.h"
 
 void TestSplitKeyValueOnChar();
+void TestRankSpliter();
 void DumpItemRequirements(string items_arg);
 void GetPlanForItems(string items_arg);
+void SearchForItemsThatRequire(string items_arg);
 
 using namespace std;
 
 int main(int argc, char **argv) {
+
+    // TestRankSpliter() ; return 0;
 
     CommandLineOptionsEncapsulation opts;
     opts.ParseArgs(argc, argv);
@@ -48,6 +52,11 @@ int main(int argc, char **argv) {
 
     if (opts.GetPlanForItem) {
 	GetPlanForItems(opts.Items);
+	return 0;
+    }
+
+    if (opts.SearchForItemsThatRequire) {
+	SearchForItemsThatRequire(opts.Items);
 	return 0;
     }
 
@@ -168,13 +177,26 @@ void GetPlanForItems(string itemsArg) {
 
     if (itemsVec.size() == 1) {
 	EntityDefinition *entity = NULL;
-	entity = OfficialData::Instance()->GetEntity(0,itemsVec[0]);
+
+	LineItem *headGoal = new LineItem(entity, 1.0);
+
+	string entityName;
+	int rankInName;
+	char *namePart;
+	if (Utils::RankInName(itemsVec[0].c_str(), &namePart, rankInName)) {
+	    entityName = namePart;
+	    delete namePart;
+	    headGoal->Quantity = rankInName * 1.0;	    
+	} else {
+	    entityName = itemsVec[0];
+	}
+
+	entity = OfficialData::Instance()->GetEntity(0,entityName);
 	if (entity == NULL) {
 	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
 	    return;
 	}
-
-	LineItem *headGoal = new LineItem(entity, 1.0);
+	headGoal->Entity = entity;
 
 	Cost cost;
 	Supply remainder;
@@ -215,6 +237,26 @@ void GetPlanForItems(string itemsArg) {
     }
     return;
 }
+
+void SearchForItemsThatRequire(string itemsArg) {
+    vector<string> itemsVec = Utils::SplitCommaSeparatedValuesWithQuotedFields(itemsArg.c_str());
+    if (itemsVec.size() == 0) {
+	return;
+    }
+
+    if (itemsVec.size() == 1) {
+	EntityDefinition *entity = NULL;
+	entity = OfficialData::Instance()->GetEntity(0,itemsVec[0]);
+	if (entity == NULL) {
+	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
+	    return;
+	}
+	OfficialData::Instance()->SearchForItemsThatRequire(entity);
+    }
+
+    return;
+}
+
 
 
 void TestSplitKeyValueOnChar() {
@@ -259,3 +301,15 @@ void TestUtilsSplit() {
     }
     return;
 }
+
+
+void TestRankSpliter() {
+    vector<string> foo = {"Pine Pole", "Pine Pole +1", "Fighter 8", "Fighter Level 6"};
+    vector<string>::iterator itr;
+    for (itr = foo.begin(); itr != foo.end(); ++itr) {
+	int rankInName = -1;
+	char *namePart;
+	bool ret = Utils::RankInName((*itr).c_str(), &namePart, rankInName);
+	printf("%15s %5s [%s] [%d]\n", (*itr).c_str(), (ret ? "TRUE" : "FALSE"), (ret ? namePart : "n/a"), rankInName);
+    }
+} 

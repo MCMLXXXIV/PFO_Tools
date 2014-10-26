@@ -46,6 +46,7 @@ OfficialData::OfficialData() {
     FileProcessorMap["Proficiencies.csv"] = &OfficialData::ParseAndStoreProficienciesAdvancementFile;
     FileProcessorMap["Reactive Advancement.csv"] = &OfficialData::ParseAndStoreReactiveAdvancementFile;
     FileProcessorMap["Utility Advancement.csv"] = &OfficialData::ParseAndStoreUtilityAdvancementFile;
+    FileProcessorMap["Feat Achievements.csv"] = &OfficialData::ParseAndStoreFeatAchievements;
 }
 
 bool OfficialData::ParseAndStoreSkillsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
@@ -64,6 +65,110 @@ bool OfficialData::ParseAndStoreUtilityAdvancementFile(string fn) {    return th
 
 bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
 bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
+
+
+void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
+    bool foundOne = false;
+    set<EntityDefinition*> searched;
+    map< string, EntityDefinition* >::iterator tlItr;
+    for (tlItr = EntitiesV2.begin(); tlItr != EntitiesV2.end(); ++tlItr) {
+	string key = (*tlItr).first;
+	EntityDefinition* entity = (*tlItr).second;
+	if (entity->HasRequirement(targetEntity, searched)) {
+	    cout << key << " / " << entity->Name << " has this as a requirement" << endl;
+	    foundOne = true;
+	}
+    }
+    if (foundOne == false) {
+	cout << "didn't find this as a requirement - searched " << searched.size() << " entities" << endl;
+    }
+}
+
+bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
+    EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
+
+    ifstream fin(fn.c_str());
+    if (!fin.is_open()) {
+	cerr << "failed to read file " << fn << " errno: " << errno << endl;
+	return false;
+    }
+    string line;
+    int line_num = 0;
+    while(getline(fin, line)) {
+	++line_num;
+	if (line_num == 1) {
+	    assert(string("Display Name,Description,Feat Req List") == line);
+	    continue;
+	}
+
+	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+	assert(fields.size() == 3);
+
+	int rank;
+	char *namePart;
+	bool rankInName = Utils::RankInName(fields[0].c_str(), &namePart, rank);
+	assert(rankInName == true);
+	
+	string featNameShort = namePart;
+	delete namePart;
+
+	string featNameFQ = "Skill.";
+	featNameFQ += featNameShort;
+
+	EntityDefinition *entity = GetEntity(0,featNameFQ);
+	if (entity == NULL) {
+	    entity = new EntityDefinition();
+	    entity->Name = featNameShort;
+
+	    list<string> typeFields;
+	    // yes - feats and skills are exactly the same thing as far as our dependency graph goes
+	    typeFields.push_back("Skill");
+	    typeFields.push_back(featNameShort);
+	    entity->Type = typeHelper->GetType(typeFields);
+	    StoreEntity(featNameFQ, entity);
+	}
+	entity->ProcessedSpreadsheetDefinition = true;
+
+	if (entity->Requirements.size() == 0) {
+	    // skipping rank zero
+	    entity->Requirements.push_back(*(new list<LineItem*>));
+	    entity->Provides.push_back(*(new list<LineItem*>));
+	}
+	while (entity->Requirements.size() <= (unsigned)rank) {
+	    entity->Requirements.push_back(*(new list<LineItem*>));
+	    entity->Provides.push_back(*(new list<LineItem*>));
+	}
+
+	list<LineItem*> *reqs = &(entity->Requirements[rank]);
+	// we should only ever process the reqs for a given rank of a given entity once
+	assert(reqs->size() == 0);
+
+	// add the previous rank as a requirement
+	if (rank > 1) {
+	    LineItem *req = new LineItem(entity, (rank - 1));
+	    reqs->push_back(req);
+	}
+	
+	string reqStr = fields[2];
+	string label = "Skill";
+	string errMsg = "";
+	if (reqStr.size() > 0) {
+	    LineItem *required = ParseRequirementString(reqStr, label, errMsg);
+	    if (required == NULL) {
+		cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
+	    } else {
+		reqs->push_back(required);
+	    }
+	}
+    }
+    fin.close();
+
+    cout << "parsed " << fn << endl;
+
+    return true;
+}
+
+
 
 void OfficialData::Dump() {
 
@@ -226,11 +331,6 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    entity = new EntityDefinition();
 	    entity->Name = skillName;
 
-	    // this has an unfortunate side effect of poluting the typeHelper's id space
-	    // because when we process the files in random order, we might add crafting skills
-	    // here w/ an incomplete type.  EG: Skills.Weaver.  Then when we prcess the
-	    // refining crafting recipe file, the type for this entity will change to
-	    // Skills.Refining.Weaver.  Not sure what to do about this yet.
 	    list<string> typeFields;
 	    typeFields.push_back(t);
 	    typeFields.push_back(skillName);
@@ -326,8 +426,10 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 
 	    
 	    // add the achievement requirements
+	    // Fighter is listed as both Achievement and Skill
 	    reqStr = fields[idx+3];
-	    label = "Achievement";
+	    // label = "Achievement";
+	    label = "Skill";
 	    errMsg = "";
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
@@ -562,6 +664,13 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	    if (entity->Requirements.size() < 1) {
 		entity->Requirements.push_back(*(new list<LineItem*>));
 		entity->Provides.push_back(*(new list<LineItem*>));
+	    }
+	    if (entity->ProcessedSpreadsheetDefinition != false) {
+		// I had an assertion here to trap any entities here that were already processed - but
+		// I don't know why.  Why should they necessarily be unprocessed here?  Oh!  because if
+		// we are here, then we are processing it.  And we should only process it once!
+		cout << "ERROR: we are processing " << fullyQualifiedName << " from " << fn 
+		     << " but it appears that this thing already has a processed entity in the system" << endl;
 	    }
 	    assert(entity->ProcessedSpreadsheetDefinition == false);
 	    //cout << ".";

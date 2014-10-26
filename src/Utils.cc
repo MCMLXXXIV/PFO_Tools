@@ -17,17 +17,30 @@ bool Utils::RankInName(const char *origName, char **name,  int &rank) {
 	return false;
     }
 
-    if (*ptr != '+') {
-	// there were numbers but no plus sign
-	return false;
+    if (*ptr == '+') {
+	rank = atoi(ptr+1);
+    } else {
+	rank = atoi(ptr);
+    }	
+
+    // trim spaces and any plus
+    while (ptr >= origName && (*ptr == ' ' || *ptr == '+')) {
+	ptr--;
     }
-
-    int nameLen = ptr - origName - 1;
-
-    rank = atoi(ptr+1);
+    int nameLen = ptr - origName + 1;
     *name = new char[nameLen+1];
     strncpy(*name, origName, nameLen);
     (*name)[nameLen] = '\0';
+
+    // finally, if the final name ends with " Level", truncate it off.
+    const char *postFix = " Level";
+    int postFixLen = strlen(postFix);
+    if (nameLen > postFixLen) {
+	if (strncmp(postFix, (*name + (nameLen - postFixLen)), postFixLen) == 0) {
+	    (*name)[nameLen - postFixLen] = '\0';
+	}
+    }
+	
     return true;
 }
 

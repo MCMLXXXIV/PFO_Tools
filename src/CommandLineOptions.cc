@@ -13,6 +13,7 @@ CommandLineOptionsEncapsulation::CommandLineOptionsEncapsulation() {
     DumpItemReqs = false;
     GetPlanForItem = false;
     ParseError = false;
+    SearchForItemsThatRequire = false;
 }
 
 bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
@@ -27,6 +28,7 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
             {"reqs", required_argument, 0, 0 },
             {"dump",       no_argument, 0, 0 },
             {"plan", required_argument, 0, 0 },
+	    {"findReqParents", required_argument, 0, 0 },
             {0,         0,              0, 0 }
         };
 
@@ -49,6 +51,10 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
 		break;
 	    case 3:
 		GetPlanForItem = true;
+		Items = optarg;
+		break;
+	    case 4:
+		SearchForItemsThatRequire = true;
 		Items = optarg;
 		break;
 	    default:	
@@ -85,7 +91,7 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
         printf("\n");
     }
 
-    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem) {
+    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem && !SearchForItemsThatRequire) {
 	ParseError = true;
 	ErrMsg = "no (valid) args";
     }
@@ -98,5 +104,7 @@ void CommandLineOptionsEncapsulation::ShowHelp() {
     cout << "   [-h|--help]                 show this mesage" << endl
 	 << "   [-d|--dump]                 dump all parsed entities" << endl
 	 << "   [[-r|--reqs] item[,item2]]  dump the known requirements for the item(s)" << endl
-	 << "   [[-p|--plan] item[,item2]]  show a plan to create the item(s)" << endl;
+	 << "   [[-p|--plan] item[,item2]]  show a plan to create the item(s)" << endl
+	 << "   [--findReqParents item]     debug: search all known enities for those that have item as a requirement" << endl
+	 << endl;
 }

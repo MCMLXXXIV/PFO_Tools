@@ -52,6 +52,7 @@ TODO
 - [x] Add detailed Entity dumper to verify correct parsing
 - [ ] Make the make file build in an obj dir and store the resulting binary in a bin dir
 - [ ] Fix command line parsing to allow showing plan for "Fighter 8", etc
+- [ ] figure out how to and add a proper "make test" target
 
 Nice to have:
 I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but

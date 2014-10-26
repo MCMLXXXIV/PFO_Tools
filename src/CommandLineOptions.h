@@ -16,6 +16,7 @@ class CommandLineOptionsEncapsulation {
     bool DumpItemReqs;
     bool GetPlanForItem;
     bool ParseError;
+    bool SearchForItemsThatRequire;
 
     string ErrMsg;
 

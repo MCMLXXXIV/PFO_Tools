@@ -16,6 +16,7 @@ class OfficialData {
     int ProcessSpreadsheetDir(string dirname);
     EntityDefinition* GetEntity(int dummy, string name);
     void Dump();
+    void SearchForItemsThatRequire(EntityDefinition* entity);
     
  private:
     OfficialData();
@@ -36,8 +37,9 @@ class OfficialData {
     bool ParseAndStoreReactiveAdvancementFile(string fn);
     bool ParseAndStoreUtilityAdvancementFile(string fn);
 
+    bool ParseAndStoreFeatAchievements(string fn);
+    
     bool ParseAndStoreRecipeFile(string fn, string subtype);
-
     bool ParseAndStoreProgressionFile(string fn, string eType);
 
     LineItem* ParseRequirementString(string reqStr, string entityName, string &errMsg);

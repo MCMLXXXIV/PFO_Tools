@@ -160,3 +160,30 @@ void EntityDefinition::Dump_StdOut(const EntityDefinition &item, const char* ind
     }
     return;
 }
+
+
+bool EntityDefinition::HasRequirement(EntityDefinition* targetEntity, set<EntityDefinition*> &searched) {
+    if (Requirements.size() < 1) {
+	return false;
+    }
+    
+    if (searched.count(this)) {
+	return false;
+    } else {
+	searched.insert(this);
+    }
+
+    vector < list < LineItem* > >::iterator reqListEntry = Requirements.begin();
+    for (; reqListEntry != Requirements.end(); ++reqListEntry) {
+	list < LineItem* >::iterator itr;
+	for (itr = (*reqListEntry).begin(); itr != (*reqListEntry).end(); ++itr) {
+	    LineItem *req = *itr;
+	    if (req->Entity == NULL) { continue; }
+	    if (req->Entity == this) { continue; }
+	    if (req->Entity == targetEntity) { return true; }
+	    if (req->Entity->HasRequirement(targetEntity, searched)) { return true; }
+	}
+    }
+
+    return false;
+}
