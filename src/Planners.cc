@@ -69,7 +69,6 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	needed = stillNeeded;
     }
 	
-    Gate *newGate = new Gate(req);
     int newGates = 0;
 
     // get the requirements for the requested rank

@@ -14,7 +14,7 @@ class OfficialData {
  public:
     OfficialData();
     int ProcessSpreadsheetDir(string dirname);
-    EntityDefinition* GetEntity(string name);
+    EntityDefinition* GetEntity(int dummy, string name);
     void Dump();
     
  private:
@@ -41,10 +41,12 @@ class OfficialData {
     LineItem* ParseRequirementString(string reqStr, string entityName, string &errMsg);
     LineItem* BuildLineItemFromKeyEqualsVal(string kvp, string entityTypeName);
 
-    EntityDefinition* FindEntity(string type, string name);
-    EntityDefinition* FindEntity(list<string> fqName);
+    //EntityDefinition* FindEntity(string type, string name);
+    //EntityDefinition* FindEntity(list<string> fqName);
 
-    map< string, EntityDefinition* > Entities;
+    bool StoreEntity(string fullyQualifiedName, EntityDefinition *entity);
+
+    map< string, EntityDefinition* > EntitiesV2;
     map< string, FileProcessor > FileProcessorMap;
     
 };

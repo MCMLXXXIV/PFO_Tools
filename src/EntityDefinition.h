@@ -14,6 +14,7 @@ class EntityDefinition {
 
  public:
     // EntityDefinition();
+    static string Dump(const EntityDefinition &item);
 
     string Name;
     bool ProcessedSpreadsheetDefinition;
@@ -22,6 +23,10 @@ class EntityDefinition {
 
     vector < list < LineItem* > > Requirements;
     vector < list < LineItem* > > Provides;
+
+ private:
+    static string Dump(const EntityDefinition &item, const char* indent, double quantity);
+    static void Dump_StdOut(const EntityDefinition &item, const char* indent, double quantity);
 };
 
 ostream &operator<<(ostream &os, const EntityDefinition &item);

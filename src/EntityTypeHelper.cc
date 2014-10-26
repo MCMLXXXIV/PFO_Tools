@@ -4,6 +4,11 @@
 #include <climits>
 #include <cassert>
 
+// Perception is listed as a skill in Skills Advancement.csv but is refered to as a
+// Feat in Utility Advancement.csv (in one of the "Feat LvX" columns.
+
+// Strength is two entities: an AbilityScore and an Expendable (Expendables Advancement.csv)
+
 const string aTypes[] = {"AbilityScore","Achievement","AchievementPoint","ExperiencePoint","Feat","Item","LogicAnd","LogicOr","Recipe","Skill","Time"};
 const string uTypes[] = {"Achievement","Feat","Skill","AchievementPoint","AbilityScore"};
 const string rTypes[] = {"Achievement","Feat","Skill"};
@@ -32,6 +37,18 @@ bool EntityTypeHelper::IsType(short typeId, string typeName) {
     return (typeName == TopLevelTypes[typeId]);    
 }
 
+EntityTypeHelper::EntityTypeHelper() {
+    // I'm sure this is a hack but I don't care... :)
+    // I need to add time here so no one else has to - and if no one adds it, then the
+    // method QuantityIsWholeNumber() won't return true for time.
+    list<string> timeType = {string("Time")};
+    GetType(timeType);
+}
+
+bool EntityTypeHelper::QuantityIsWholeNumber(short type) {
+    return WholeNumberFlagByLevelOneTypeId[type];
+}
+
 short* EntityTypeHelper::GetType(list<string> names) {
     HierarchicalId *hierId = &IdRoot;
     list<short> ids;
@@ -42,13 +59,14 @@ short* EntityTypeHelper::GetType(list<string> names) {
 	    // there are two things going on here:
 	    // 1) the check above, "if map[s] != NULL", causes the entry for s to be created
 	    // 2) the zero value will be used to flag the end of the id chain so we want to skip it here
-	    int nextId = hierId->NextLevel.size();
+	    uint nextId = hierId->NextLevel.size();
 	    assert(nextId < SHRT_MAX);
 	    if (ids.size() < 1) {
 		// if ids.size < 1 then we are processing the top level type
 
 		if (UniversalFlagByLevelOneTypeId.size() == 0) { UniversalFlagByLevelOneTypeId.push_back(false); }
 		if (RankedFlagByLevelOneTypeId.size() == 0) { RankedFlagByLevelOneTypeId.push_back(false); }
+		if (WholeNumberFlagByLevelOneTypeId.size() == 0) { WholeNumberFlagByLevelOneTypeId.push_back(false); }
 		if (TopLevelTypes.size() == 0) { TopLevelTypes.push_back(""); }
 		cout << "name: " << name << "; nextId: " << nextId << "; vectorSize: " << UniversalFlagByLevelOneTypeId.size() << endl;
 		assert(UniversalFlagByLevelOneTypeId.size() == nextId);
@@ -85,10 +103,6 @@ bool EntityTypeHelper::IsUniversal(short type) {
 
 bool EntityTypeHelper::IsRanked(short type) {
     return RankedFlagByLevelOneTypeId[type];
-}
-
-bool EntityTypeHelper::QuantityIsWholeNumber(short type) {
-    return WholeNumberFlagByLevelOneTypeId[type];
 }
 
 int EntityTypeHelper::GetMaxEntityId(short* typeCategory) {
@@ -130,7 +144,6 @@ list<string> EntityTypeHelper::GetType(short* type) {
     list<string> retVal;
     if (type == NULL) { return retVal; }
 
-    HierarchicalId *idObject = &IdRoot;
     map<string, HierarchicalId*> *subIds = &(IdRoot.NextLevel);
     while (*type != 0 && subIds != NULL) {
 	// this is ugly - need to make a map for this

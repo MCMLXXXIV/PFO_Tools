@@ -35,7 +35,7 @@ class EntityTypeHelper {
     static const set<string> RankedEntityTypes;
     static const set<string> DecimalEntityTypes;
 
-    EntityTypeHelper(){};
+    EntityTypeHelper();
     EntityTypeHelper(EntityTypeHelper const&);
     EntityTypeHelper& operator=(EntityTypeHelper const &);
     static EntityTypeHelper* m_pInstance;

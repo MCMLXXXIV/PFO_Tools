@@ -57,28 +57,69 @@ bool OfficialData::ParseAndStoreUtilityAdvancementFile(string fn) {    return th
 bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
 bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
 
-// Perception is listed as a skill in Skills Advancement.csv but is refered to as a
-// Feat in Utility Advancement.csv (in one of the "Feat LvX" columns.
-
 void OfficialData::Dump() {
 
-    cout << "Have " << Entities.size() << " entities" << endl;
+    cout << "Have " << EntitiesV2.size() << " entities" << endl;
 
     map<string, EntityDefinition*>::iterator itr;
-    for (itr = Entities.begin(); itr != Entities.end(); ++itr) {
+    for (itr = EntitiesV2.begin(); itr != EntitiesV2.end(); ++itr) {
 	cout << *((*itr).second) << endl;
     }
 }
 
-EntityDefinition* OfficialData::GetEntity(string name) {
+bool OfficialData::StoreEntity(string fullyQualifiedName, EntityDefinition *entity) {
     map< string, EntityDefinition* >::iterator entityMapEntry;
-    entityMapEntry = Entities.find(name);
-    if (entityMapEntry == Entities.end()) {
+    entityMapEntry = EntitiesV2.find(fullyQualifiedName);
+    if (entityMapEntry == EntitiesV2.end()) {
+	EntitiesV2[fullyQualifiedName] = entity;
+	return true;
+    } else {
+	bool alreadyExists = true;
+	assert(alreadyExists == false);
+	return false;
+    }
+    return false;
+}
+
+
+EntityDefinition* OfficialData::GetEntity(int dummy, string fullyQualifiedName) {
+    map< string, EntityDefinition* >::iterator entityMapEntry;
+    entityMapEntry = EntitiesV2.find(fullyQualifiedName);
+    if (entityMapEntry == EntitiesV2.end()) {
 	return NULL;
     } else {
 	return (*entityMapEntry).second;
     }
 }
+
+
+
+//EntityDefinition* OfficialData::FindEntity(string type, string name) {
+//    
+//    // get the short id for this type
+//    list<string> typeFields;
+//    typeFields.push_back(type);
+//    short *tlTypeId = EntityTypeHelper::Instance()->GetType(typeFields);
+//
+//    map< string, EntityDefinition* >::iterator entityMapEntry;
+//    EntityDefinition *entity;
+//    entityMapEntry = Entities.find(name);
+//    if (entityMapEntry == Entities.end()) {
+//	return NULL;
+//    }
+//
+//    entity = (*entityMapEntry).second;
+//    if (entity->Type[0] != tlTypeId[0]) {
+//	list<string> typeNames = EntityTypeHelper::Instance()->GetType(entity->Type);
+//	string oldType = typeNames.front();
+//	cout << "ERROR: multiple entities with name [" << name << "]"
+//	     << " oldType:" << oldType << "; newType:" << type
+//	     << endl;
+//    }
+//    assert(entity->Type[0] == tlTypeId[0]);
+//
+//    return entity;
+//}
 
 int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     DIR *dp;
@@ -109,7 +150,7 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     }
     closedir(dp);
 
-    cout << "Done processing spreadsheet data; have " << Entities.size() << " entities" << endl;
+    cout << "Done processing spreadsheet data; have " << EntitiesV2.size() << " entities" << endl;
 
     return 0;
 }
@@ -121,7 +162,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
     //    make an entity definition and fill it out
     //    store the entity in the global entity map by the name
 
-    cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
+    // cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
 
     EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
 
@@ -153,21 +194,26 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 
 	string skillName = fields[0];
 	if (line_num == 1) {
-	    cout << "skipping first line w/ first field: " << skillName << endl;
+	    // cout << "skipping first line w/ first field: [" << skillName << "]" << endl;
+	    assert(skillName == "SlotName");
 	    continue;
 	}
 	
 	// see if something else already added an entity for this (eg, if the entity was listed
 	// as a component for another Entity)
-	map< string, EntityDefinition* >::iterator entityMapEntry;
 	EntityDefinition *entity;
-	entityMapEntry = Entities.find(skillName);
-	if (entityMapEntry != Entities.end()) {
-	    entity = (*entityMapEntry).second;
-	    printf("%c %2d: %22s -> %d\n", '.', line_num, fields[0].c_str(), (int)fields.size());
-	    assert(entity->ProcessedSpreadsheetDefinition == false);
+	string skillNameFQ = "Skill.";
+	skillNameFQ += skillName;
+	entity = GetEntity(0, skillNameFQ);
+	if (entity != NULL) {
+	    // printf("%c %2d: %22s -> %d\n", '.', line_num, fields[0].c_str(), (int)fields.size());
+	    if (fn == "official_data/Utility Advancement.csv" && skillName == "Channel Smite") {
+		cout << "KNOWN DATA ERROR: Utility Advancement.csv has two rows for Channel Smite" << endl;
+	    } else {
+		assert(entity->ProcessedSpreadsheetDefinition == false);
+	    }
 	} else {
-	    printf("%c %2d: %22s -> %d\n", '+', line_num, fields[0].c_str(), (int)fields.size());
+	    //printf("%c %2d: %22s -> %d\n", '+', line_num, fields[0].c_str(), (int)fields.size());
 
 	    entity = new EntityDefinition();
 	    entity->Name = skillName;
@@ -181,9 +227,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    typeFields.push_back(t);
 	    typeFields.push_back(skillName);
 	    entity->Type = typeHelper->GetType(typeFields);
-
-	    Entities[skillName] = entity;
+	    StoreEntity(skillNameFQ, entity);
 	}
+	entity->ProcessedSpreadsheetDefinition = true;
 	    
 	// hack here to keep track of known errors in the data
 	if (entity->Requirements.size() != 0) {
@@ -196,7 +242,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    }
 	}
 
-	int idx = 1;
+	uint idx = 1;
 	int rank = 1;
 	for (idx = 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
 
@@ -220,12 +266,12 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 		entity->Provides.push_back(*(new list<LineItem*>));
 	    }
 	    list<LineItem*> *reqs = &(entity->Requirements.back());
-	    list<LineItem*> *pros = &(entity->Requirements.back());
+	    // list<LineItem*> *pros = &(entity->Provides.back());
 	    
 	    // add the exp requirement
 	    string entityName = "ExperiencePoint";
 	    LineItem *req = new LineItem();
-	    req->Entity = Entities[entityName];
+	    req->Entity = GetEntity(0, entityName);
 	    if (req->Entity == NULL) {
 		list<string> typeFields;
 		typeFields.push_back(entityName);
@@ -233,7 +279,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 		req->Entity = new EntityDefinition();
 		req->Entity->Name = entityName;
 		req->Entity->Type = typeHelper->GetType(typeFields);
-		Entities[entityName] = req->Entity;
+		StoreEntity(entityName, req->Entity);
 	    }
 	    req->Quantity = atoi(fields[idx].c_str());
 	    reqs->push_back(req);
@@ -273,7 +319,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    
 	    // add the achievement requirements
 	    reqStr = fields[idx+3];
-	    label = "Skill";
+	    label = "Achievement";
 	    errMsg = "";
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
@@ -380,7 +426,12 @@ LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityT
 	return NULL;
     }
 
-    EntityDefinition* entity = FindEntity(entityTypeName, key);
+    // Yikes - this one is scary - I can't remember if the type will be underspecified here
+    // eg, will we store Item.Craft.Sword and then just get Item.Sword through this interface?
+    // TODO: Dump all entities and make sure they are all correct...
+    string fqn = entityTypeName;
+    fqn += "." + key;
+    EntityDefinition* entity = GetEntity(0, fqn);
     if (entity == NULL) {
 	entity = new EntityDefinition();
 	entity->Name = key;
@@ -388,41 +439,12 @@ LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityT
 	typeFields.push_back(entityTypeName);
 	typeFields.push_back(key);
 	entity->Type = EntityTypeHelper::Instance()->GetType(typeFields);
-	Entities[key] = entity;
+	StoreEntity(fqn, entity);
     }
     
     return new LineItem(entity, atoi(value.c_str()));
 }
 
-EntityDefinition* OfficialData::FindEntity(string type, string name) {
-    
-    // get the short id for this type
-    list<string> typeFields;
-    typeFields.push_back(type);
-    short *tlTypeId = EntityTypeHelper::Instance()->GetType(typeFields);
-
-
-    map< string, EntityDefinition* >::iterator entityMapEntry;
-    EntityDefinition *entity;
-    entityMapEntry = Entities.find(name);
-    if (entityMapEntry == Entities.end()) {
-	return NULL;
-    }
-
-    entity = (*entityMapEntry).second;
-    if (entity->Type[0] != tlTypeId[0]) {
-	list<string> typeNames = EntityTypeHelper::Instance()->GetType(entity->Type);
-	string oldType = typeNames.front();
-	cout << "ERROR: multiple entities with name [" << name << "]"
-	     << " oldType:" << oldType << "; newType:" << type
-	     << endl;
-    }
-
-    assert(entity->Type[0] == tlTypeId[0]);
-
-    return entity;
-    
-}
 
 bool OfficialData::ParseAndStoreCraftingRecipeFile(string fn) {
     return this->ParseAndStoreRecipeFile(fn, "Craft");
@@ -432,14 +454,19 @@ bool OfficialData::ParseAndStoreRefiningRecipeFile(string fn) {
     return this->ParseAndStoreRecipeFile(fn, "Refine");
 }
 
-bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
+// going to handle subtype differently - later I'll add a list of tags in the EntityDefinition
+// then I can add the "Craft" tag or the "Refine" tag to the Entity.  But for now, this second arg
+// is (almost) ignored.  Until I am parsing the file that tells me how much an item is created
+// when you do one creation job (eg, if you make course thread, you get about 20 of them per job)
+// I am adding dummy, random values when this function is called with ignored == "Refine".
+bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
     // open the file named fn
     // parse the data cells
     // foreach row
     //    make an entity definition and fill it out
     //    store the entity in the global entity map by the name
 
-    cout << "+++ RUNNING: OfficialData::ParseAndStoreRecipeFile(" << fn << ")" << endl;
+    // cout << "+++ RUNNING: OfficialData::ParseAndStoreRecipeFile(" << fn << ")" << endl;
 
     EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
 
@@ -519,19 +546,19 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 	// as a component for another Entity)
 	map< string, EntityDefinition* >::iterator entityMapEntry;
 	EntityDefinition *entity;
-	entityMapEntry = Entities.find(*name);
-	if (entityMapEntry != Entities.end()) {
-	    entity = (*entityMapEntry).second;
-
+	string fullyQualifiedName = "Item.";
+	fullyQualifiedName += *name;
+	entity = GetEntity(0, fullyQualifiedName);
+	if (entity != NULL) {
 	    // only add a Requirements and Provides list if we process the Entity from the spreadsheet
 	    if (entity->Requirements.size() < 1) {
 		entity->Requirements.push_back(*(new list<LineItem*>));
 		entity->Provides.push_back(*(new list<LineItem*>));
 	    }
 	    assert(entity->ProcessedSpreadsheetDefinition == false);
-	    cout << ".";
+	    //cout << ".";
 	} else {
-	    cout << "+";
+	    //cout << "+";
 	    // I could (should?) check that these fields were set correctly the first time - but lets call that a todo
 	    entity = new EntityDefinition();
 	    entity->Name = *name;
@@ -545,14 +572,13 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 	    // still, we need to create the requirements and provides lists for the single rank
 	    entity->Requirements.push_back(*(new list<LineItem*>));
 	    entity->Provides.push_back(*(new list<LineItem*>));
-
-	    Entities[*name] = entity;
+	    StoreEntity(fullyQualifiedName, entity);
 	}
 	// TODO FIXME TEST
 	// soon I'll add code to consume the secondary, crowd sourced, table that give the yield
 	// for refining stuff - for now, in order to do some testing of the goal solution code,
 	// I'm going to make it a random number
-	if (subtype == "Refine") {
+	if (ignored == "Refine") {
 	    entity->CreationIncrement = (rand() % 4) + 1;
 	} else {
 	    entity->CreationIncrement = 1;
@@ -563,7 +589,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 
 	// time requirement
 	req = new LineItem();
-	req->Entity = Entities["Time"];
+	req->Entity = GetEntity(0, "Time");
 	if (req->Entity == NULL) {
 	    list<string> typeFields;
 	    typeFields.push_back("Time");
@@ -571,7 +597,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 	    req->Entity = new EntityDefinition();
 	    req->Entity->Name = "Time";
 	    req->Entity->Type = typeHelper->GetType(typeFields);
-	    Entities["Time"] = req->Entity;
+	    StoreEntity("Time", req->Entity);
 	}
 	req->Quantity = atoi(fields[14].c_str());
 	entity->Requirements[0].push_back(req);
@@ -580,32 +606,27 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 	string skillName = fields[2];
 	int skillLevel = atoi(fields[3].c_str());
 
+	string skillNameFqn = "Skill." + skillName;
 	req = new LineItem();
-	req->Entity = Entities[skillName];
+	req->Entity = GetEntity(0, skillNameFqn);
 	if (req->Entity != NULL) {
-	    cout << "_";
-
-	    // this is the only file that knows the difference between refine and gather skills
-	    // However, this whole distinction is starting to feel hacky.  I'm going to call this
-	    // potential technical debt and do it anyway.
+	    //cout << "_";
 	    list<string> typeFields;
 	    typeFields.push_back("Skill");
-	    typeFields.push_back(subtype);
 	    typeFields.push_back(skillName);
 	    req->Entity->Type = typeHelper->GetType(typeFields);
 
 	} else {
-	    cout << "+";
+	    //cout << "+";
 	    list<string> typeFields;
 	    typeFields.push_back("Skill");
-	    typeFields.push_back(subtype);
 	    typeFields.push_back(skillName);
 
 	    req->Entity = new EntityDefinition();
 	    req->Entity->Name = skillName;
 	    req->Entity->Type = typeHelper->GetType(typeFields);
 	    req->Entity->ProcessedSpreadsheetDefinition = false;
-	    Entities[skillName] = req->Entity;
+	    StoreEntity(skillNameFqn, req->Entity);
 	}
 	req->Quantity = skillLevel;
 	entity->Requirements[0].push_back(req);
@@ -615,18 +636,12 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 	for (int componentOffset = 5; componentOffset < 10; componentOffset += 2) {
 	    if (fields[componentOffset].size() < 1) { continue; }
 	    string componentName = fields[componentOffset];
-
+	    string componentNameFqn = "Item." + componentName;
 	    req = new LineItem();
-	    req->Entity = Entities[componentName];
 
-	    if (componentName == "Yew Stave") {
-		cout << endl << "Yew Stave Component" << endl;
-	    }
+	    req->Entity = GetEntity(0, componentNameFqn);
 
-	    if (req->Entity != NULL) {
-		cout << "@";
-	    } else {
-		cout << "P";
+	    if (req->Entity == NULL) {
 		list<string> typeFields;
 		typeFields.push_back("Item");
 		typeFields.push_back(componentName);
@@ -636,7 +651,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string subtype) {
 		req->Entity->Type = typeHelper->GetType(typeFields);
 		req->Entity->ProcessedSpreadsheetDefinition = false;
 		req->Entity->CreationIncrement = 1;
-		Entities[componentName] = req->Entity;
+		StoreEntity(componentNameFqn, req->Entity);
 	    }
 	    req->Quantity = atoi(fields[componentOffset+1].c_str());
 	    entity->Requirements[0].push_back(req);	    
