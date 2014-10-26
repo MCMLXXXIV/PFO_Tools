@@ -41,7 +41,7 @@ The first solution planner (for items) is in and working - but not yet complete 
 TODO
 ====
 
-- [ ] Make the OfficialData a singleton and
+- [x] Make the OfficialData a singleton and
   - [x] remove the OfficialData arg from the planners
 - [x] Work on Supply implementation
 - [x] Work in TrackedResources implementation

@@ -22,6 +22,14 @@
 
 using namespace std;
 
+OfficialData* OfficialData::m_pInstance = NULL;
+OfficialData* OfficialData::Instance() {
+    if (!m_pInstance) {
+	m_pInstance = new OfficialData();
+    }
+    return m_pInstance;
+}
+
 OfficialData::OfficialData() {
     FileProcessorMap["Recipes (Crafting).csv"] = &OfficialData::ParseAndStoreCraftingRecipeFile;
     FileProcessorMap["Recipes (Refining).csv"] = &OfficialData::ParseAndStoreRefiningRecipeFile;

@@ -12,12 +12,14 @@ typedef bool (OfficialData::*FileProcessor)(string);
 
 class OfficialData {
  public:
-    OfficialData();
+    static OfficialData* Instance();
     int ProcessSpreadsheetDir(string dirname);
     EntityDefinition* GetEntity(int dummy, string name);
     void Dump();
     
  private:
+    OfficialData();
+
     bool ParseAndStoreCraftingRecipeFile(string fn);
     bool ParseAndStoreRefiningRecipeFile(string fn);
     bool ParseAndStoreSkillsAdvancementFile(string fn);
@@ -48,7 +50,8 @@ class OfficialData {
 
     map< string, EntityDefinition* > EntitiesV2;
     map< string, FileProcessor > FileProcessorMap;
-    
+
+    static OfficialData* m_pInstance;
 };
 
 #endif

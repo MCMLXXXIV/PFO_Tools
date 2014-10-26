@@ -15,8 +15,8 @@
 #include "CommandLineOptions.h"
 
 void TestSplitKeyValueOnChar();
-void DumpItemRequirements(string items_arg, OfficialData &entities);
-void GetPlanForItems(string items_arg, OfficialData &entities);
+void DumpItemRequirements(string items_arg);
+void GetPlanForItems(string items_arg);
 
 using namespace std;
 
@@ -33,21 +33,21 @@ int main(int argc, char **argv) {
 	return 0;
     }
 
-    OfficialData rulesGraph;
-    rulesGraph.ProcessSpreadsheetDir("official_data");
+    OfficialData* rulesGraph = OfficialData::Instance();
+    rulesGraph->ProcessSpreadsheetDir("official_data");
     
     if (opts.DumpItems) {
-	rulesGraph.Dump();
+	rulesGraph->Dump();
 	return 0;
     }
 
     if (opts.DumpItemReqs) {
-	DumpItemRequirements(opts.Items, rulesGraph);
+	DumpItemRequirements(opts.Items);
 	return 0;
     }
 
     if (opts.GetPlanForItem) {
-	GetPlanForItems(opts.Items, rulesGraph);
+	GetPlanForItems(opts.Items);
 	return 0;
     }
 
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
     // return 0;
 
     // 
-    entity = rulesGraph.GetEntity(0,"Skill.Armorsmith");
+    entity = rulesGraph->GetEntity(0,"Skill.Armorsmith");
     assert(entity != NULL);
     // cout << EntityDefinition::Dump(*entity) << endl; return 0;
 
@@ -77,13 +77,13 @@ int main(int argc, char **argv) {
 
     headEntity->Type = EntityTypeHelper::Instance()->GetType(typeStringName);
 
-    // entity = rulesGraph.GetEntity(0,"Item.Pot Steel Plate");
-    // entity = rulesGraph.GetEntity(0,"Item.Journeyman's Speed Potion");
+    // entity = rulesGraph->GetEntity(0,"Item.Pot Steel Plate");
+    // entity = rulesGraph->GetEntity(0,"Item.Journeyman's Speed Potion");
     
     headEntity->Requirements.push_back(list<LineItem*>());
 
-    //entity = rulesGraph.GetEntity(0,"Item.Hunter's Longbow");
-    entity = rulesGraph.GetEntity(0,"Adept's Spellbook");
+    //entity = rulesGraph->GetEntity(0,"Item.Hunter's Longbow");
+    entity = rulesGraph->GetEntity(0,"Adept's Spellbook");
     assert(entity != NULL);
 
     // cout << EntityDefinition::Dump(*entity) << endl; return 0;
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     LineItem *stuff = new LineItem(entity, 2.0);
     headEntity->Requirements[0].push_back(stuff);
 
-    entity = rulesGraph.GetEntity(0,"Item.Yew and Iron Splint");
+    entity = rulesGraph->GetEntity(0,"Item.Yew and Iron Splint");
     assert(entity != NULL);
     stuff = new LineItem(entity, 1.0);
     //headEntity->Requirements[0].push_back(stuff);
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void DumpItemRequirements(string itemsArg, OfficialData &entities) {
+void DumpItemRequirements(string itemsArg) {
     vector<string> itemsVec = Utils::SplitCommaSeparatedValuesWithQuotedFields(itemsArg.c_str());
     if (itemsVec.size() == 0) {
 	return;
@@ -149,7 +149,7 @@ void DumpItemRequirements(string itemsArg, OfficialData &entities) {
 
     if (itemsVec.size() == 1) {
 	EntityDefinition *entity = NULL;
-	entity = entities.GetEntity(0,itemsVec[0]);
+	entity = OfficialData::Instance()->GetEntity(0,itemsVec[0]);
 	if (entity == NULL) {
 	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
 	    return;
@@ -160,7 +160,7 @@ void DumpItemRequirements(string itemsArg, OfficialData &entities) {
     return;
 }
 
-void GetPlanForItems(string itemsArg, OfficialData &entities) {
+void GetPlanForItems(string itemsArg) {
     vector<string> itemsVec = Utils::SplitCommaSeparatedValuesWithQuotedFields(itemsArg.c_str());
     if (itemsVec.size() == 0) {
 	return;
@@ -168,7 +168,7 @@ void GetPlanForItems(string itemsArg, OfficialData &entities) {
 
     if (itemsVec.size() == 1) {
 	EntityDefinition *entity = NULL;
-	entity = entities.GetEntity(0,itemsVec[0]);
+	entity = OfficialData::Instance()->GetEntity(0,itemsVec[0]);
 	if (entity == NULL) {
 	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
 	    return;
