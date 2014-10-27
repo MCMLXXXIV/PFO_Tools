@@ -8,6 +8,9 @@
 
 using namespace std;
 
+void Cost::Add(string nonAggregatableCost) {
+    NonAggregateCosts.push_back(nonAggregatableCost);
+}
 
 void Cost::Add(LineItem *item, string msg) {
     if (item == NULL) { return; }
@@ -58,6 +61,13 @@ void Cost::Add(LineItem *item, string msg, int level) {
 
 void Cost::Dump() {
     Dump("");
+    if (NonAggregateCosts.size() > 0) {
+	cout << endl << "Unaggregated costs:" << endl;
+	list<string>::iterator itr;
+	for (itr = NonAggregateCosts.begin(); itr != NonAggregateCosts.end(); ++itr) {
+	    cout << "    " << *itr << endl;
+	}
+    }
 }
 
 void Cost::Dump(string indent) {

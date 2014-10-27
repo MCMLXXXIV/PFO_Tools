@@ -56,6 +56,15 @@ TODO
 - [ ] undo the GetEntity dummy flag
 - [ ] rename skills to feats - maybe remove skill from the list of types - per Cheney post in EntityTypeHelper.cc
 
+
+BUGS
+====
+
+- [x] the planner bank deposit algo is bugged
+   - src/arch_test -p "Skill.Fighter Level 4" # see the multiple costs for "1 of Hit Points", etc.
+   - FIXED: I was erroneously ending the planner recursion when I hit an or gate - I needed only to 
+     skip the gate, not return from the function
+
 Nice to have:
 I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but
 for now I'll just write stuff to stdout.

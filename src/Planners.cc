@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <cassert>
+#include <cstring>
 
 #include "Planners.h"
 #include "EntityTypeHelper.h"
@@ -48,8 +49,17 @@ Gate* Planners::GetPlanStep(LineItem *req,
 			    int &maxDepth,
 			    int &callCount)
 {
-    
-    cout << "Planners::GetPlanStep(" << req->Entity->Name << "); depth: " << depth << endl;
+    char indent[(depth*4)+1];
+    indent[depth*4] = '\0';
+    memset(indent, ' ', depth*4);
+
+    char buf[16];
+    if (EntityTypeHelper::Instance()->QuantityIsWholeNumber(req->Entity->Type[0])) {
+	snprintf(buf, 15, "%1.f", req->Quantity);
+    } else {
+	snprintf(buf, 15, "%.3f", req->Quantity);
+    }
+    cout << indent << "Planners::GetPlanStep(" << buf << " of " << req->Entity->Name << "); depth: " << depth << endl;
 
     Gate *gate = new Gate();
     
@@ -63,7 +73,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	if (stillNeeded <= 0.0) {
 	    bool isLeaf = true;
 	    bool bankFilled = true;
-	    cout << "BANK: " << req->Quantity << " of " << req->Entity->Name << " satisfied from bank" << endl;
+	    cout << indent << "BANK: " << req->Quantity << " of " << req->Entity->Name << " satisfied from bank" << endl;
 	    return new Gate(isLeaf, bankFilled, req);
 	}
 	needed = stillNeeded;
@@ -82,14 +92,14 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	unsigned rank = unsigned(req->Quantity + 0.1);
 	// TODO - until I finish the parsers, some entities will have incomplete data
 	if (req->Entity->Requirements.size() < 1) {
-	    cout << "WARNING: this ranked Entity has no processed requirements; name: " << req->Entity->Name << endl;
+	    cout << indent << "WARNING: this ranked Entity has no processed requirements; name: " << req->Entity->Name << endl;
 	    reqs = new list< LineItem* >();
 	} else if (req->Entity->Requirements.size() < rank) {
-	    cout << "WARNING: this ranked Entity has incomplete requirements; name: " << req->Entity->Name << endl;
+	    cout << indent << "WARNING: this ranked Entity has incomplete requirements; name: " << req->Entity->Name << endl;
 	    reqs = new list< LineItem* >();
 	} else {
 	    reqs = &( req->Entity->Requirements[rank] );
-	    cout << "Have " << reqs->size() << " reqs for " << req->Entity->Name 
+	    cout << indent << "Have " << reqs->size() << " reqs for " << req->Entity->Name 
 		 << " rank " << rank << " of " << (req->Entity->Requirements.size()-1) << endl;
 	}	
     } else {
@@ -97,7 +107,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	    // for things like "Time" (or until I finish this program, Skills), there may be no sub reqs at all
 	    // in this case, make an empty req list so that we can continue normally
 	    reqs = new list< LineItem* >();
-	    cout << "*** no requirements for " << req->Entity->Name << endl;
+	    cout << indent << "*** no requirements for " << req->Entity->Name << endl;
 	} else {
 	    reqs = &( req->Entity->Requirements[0] );
 	}
@@ -116,13 +126,14 @@ Gate* Planners::GetPlanStep(LineItem *req,
     for (; reqEntry != reqs->end(); reqEntry++) {
 	LineItem *subReq = *reqEntry;
 	if (!trackedResources.IsTracked(subReq->Entity->Type)) {
-	    cout << "skipping untracked requirement: " << subReq->Entity->Name << endl;
+	    cout << indent << "skipping untracked requirement: " << subReq->Entity->Name << endl;
 	    continue;
 	}
 	if (EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "LogicOr")) {
 	    gate->SetIsOrGate(true);
-	    cout << req->Entity->Name << " skipping or gate" << endl;
-	    return gate;
+	    cout << indent << req->Entity->Name << " skipping OR gate" << endl;
+	    cost.Add("OR Gate");
+	    continue;
 	}
 
 	LineItem *gateReq = new LineItem(*subReq);
@@ -141,7 +152,11 @@ Gate* Planners::GetPlanStep(LineItem *req,
 
     if (EntityTypeHelper::Instance()->IsUniversal(req->Entity->Type[0])) {
 	// for example, skills, achievements, ability scores
-	cout << "BANK: deposit " << req->Quantity << " of " << req->Entity->Name << " for " << parentLineItem->Entity->Name << endl; 
+	string parentEntity = "";
+	if (parentLineItem != NULL) {
+	    parentEntity = " for " + parentLineItem->Entity->Name;
+	}
+	cout << indent << "BANK: deposit " << req->Quantity << " of " << req->Entity->Name << parentEntity << endl; 
 	bank.Deposit(req);
     } else if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item") && productConsumed == false) {
 	// for example, the item goal(s)
@@ -182,7 +197,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}
     }
 
-    cout << "handled " << req->Quantity << " of " << req->Entity->Name << " with " << newGates << " new gates" << endl;
+    cout << indent << "handled " << req->Quantity << " of " << req->Entity->Name << " with " << newGates << " new gates" << endl;
     return gate;
 
 }

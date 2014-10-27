@@ -16,7 +16,7 @@ double Supply::Withdrawal(LineItem *item) {
     }
 
     if (EntityTypeHelper::Instance()->IsRanked(item->Entity->Type[0])) {
-	if (item->Quantity >= (Items[itemId])->Quantity) {
+	if (item->Quantity > (Items[itemId])->Quantity) {
 	    return item->Quantity;
 	} else {
 	    return 0.0;
