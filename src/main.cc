@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
     // return 0;
 
     // 
-    entity = rulesGraph->GetEntity("Skill.Armorsmith");
+    entity = rulesGraph->GetEntity("Feat.Armorsmith");
     assert(entity != NULL);
     // cout << EntityDefinition::Dump(*entity) << endl; return 0;
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
     typeStringName.clear();
-    typeStringName.push_back("Skill");
+    typeStringName.push_back("Feat");
     trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
     typeStringName.clear();
@@ -228,7 +228,7 @@ void GetPlanForItems(string itemsArg) {
 	trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 	
 	typeStringName.clear();
-	typeStringName.push_back("Skill");
+	typeStringName.push_back("Feat");
 	trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 	
 	typeStringName.clear();

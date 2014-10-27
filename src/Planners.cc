@@ -82,7 +82,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
     int newGates = 0;
 
     // get the requirements for the requested rank
-    // as of this writing, skills, achievements, and feats have ranks
+    // as of this writing achievements and feats have ranks
     // all the others (like Items, Time, etc) do not
     // though I am toying with the idea of ranking items too - to track +1, +2 things, etc
     list < LineItem* > *reqs = NULL;
@@ -104,7 +104,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}	
     } else {
 	if (req->Entity->Requirements.size() < 1) {
-	    // for things like "Time" (or until I finish this program, Skills), there may be no sub reqs at all
+	    // for things like "Time" there may be no sub reqs at all
 	    // in this case, make an empty req list so that we can continue normally
 	    reqs = new list< LineItem* >();
 	    cout << indent << "*** no requirements for " << req->Entity->Name << endl;
@@ -151,7 +151,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
     }
 
     if (EntityTypeHelper::Instance()->IsUniversal(req->Entity->Type[0])) {
-	// for example, skills, achievements, ability scores
+	// for example, feats, achievements, ability scores
 	string parentEntity = "";
 	if (parentLineItem != NULL) {
 	    parentEntity = " for " + parentLineItem->Entity->Name;

@@ -24,17 +24,14 @@
 //confusion.
 // ---------------------------------------------------------------------------------------------- //
 
-const string aTypes[] = {"AbilityScore","Achievement","AchievementPoint","ExperiencePoint","Feat","Item","LogicAnd","LogicOr","Recipe","Skill","Time"};
-const string uTypes[] = {"AbilityScore","Achievement","AchievementPoint","Feat","Skill"};
-const string rTypes[] = {"Achievement","Feat","Skill"};
+const string aTypes[] = {"AbilityScore","Achievement","AchievementPoint","ExperiencePoint","Feat","Item","LogicAnd","LogicOr","Recipe","Time"};
+const string uTypes[] = {"AbilityScore","Achievement","AchievementPoint","Feat"};
+const string rTypes[] = {"Achievement","Feat"};
 const string fTypes[] = {"AbilityScore"};
 const set<string> EntityTypeHelper::AllowedTopLevelTypes (aTypes, aTypes + sizeof(aTypes)/sizeof(aTypes[0]));
 const set<string> EntityTypeHelper::UniversalEntityTypes (uTypes, uTypes + sizeof(uTypes)/sizeof(uTypes[0]));
 const set<string> EntityTypeHelper::RankedEntityTypes (rTypes, rTypes + sizeof(rTypes)/sizeof(rTypes[0]));
 const set<string> EntityTypeHelper::DecimalEntityTypes (fTypes, fTypes + sizeof(fTypes)/sizeof(fTypes[0]));
-
-//const set<string> EntityTypeHelper::UniversalEntityTypes {"Achievement","Feat","Skill","AchievementPoint","AbilityScore"};
-//const set<string> EntityTypeHelper::RankedEntityTypes {"Achievement","Feat","Skill"};
 
 EntityTypeHelper* EntityTypeHelper::m_pInstance = NULL;
 

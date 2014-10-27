@@ -49,22 +49,22 @@ OfficialData::OfficialData() {
     FileProcessorMap["Feat Achievements.csv"] = &OfficialData::ParseAndStoreFeatAchievements;
 }
 
-bool OfficialData::ParseAndStoreSkillsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreArmorAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreAttackAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreBonusesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreCantripAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreDefensiveAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreExpendablesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
+bool OfficialData::ParseAndStoreSkillsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreArmorAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreAttackAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreBonusesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreCantripAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreDefensiveAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreExpendablesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
 //bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreOrisonAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStorePointsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
+bool OfficialData::ParseAndStoreOrisonAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStorePointsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
 //bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreReactiveAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreUtilityAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
+bool OfficialData::ParseAndStoreReactiveAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreUtilityAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
 
-bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
-bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Skill");}
+bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
 
 
 void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
@@ -112,7 +112,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
 	string featNameShort = namePart;
 	delete namePart;
 
-	string featNameFQ = "Skill.";
+	string featNameFQ = "Feat.";
 	featNameFQ += featNameShort;
 
 	EntityDefinition *entity = GetEntity(featNameFQ);
@@ -121,8 +121,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
 	    entity->Name = featNameShort;
 
 	    list<string> typeFields;
-	    // yes - feats and skills are exactly the same thing as far as our dependency graph goes
-	    typeFields.push_back("Skill");
+	    typeFields.push_back("Feat");
 	    typeFields.push_back(featNameShort);
 	    entity->Type = typeHelper->GetType(typeFields);
 	    StoreEntity(featNameFQ, entity);
@@ -150,7 +149,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
 	}
 	
 	string reqStr = fields[2];
-	string label = "Skill";
+	string label = "Feat";
 	string errMsg = "";
 	if (reqStr.size() > 0) {
 	    LineItem *required = ParseRequirementString(reqStr, label, errMsg);
@@ -260,7 +259,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
     int line_num = 0;
     while(getline(fin, line)) {
 	++line_num;
-	// there is only one line per skill with each line having the data out to the max skill (121 total fields)
+	// there is only one line per feat with each line having the data out to the max feat (121 total fields)
 	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
 
 	if (fields.size() < 1) {
@@ -282,22 +281,22 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	//AbilityReq Lv2
 	//AbilityBonus Lv2
 
-	string skillName = fields[0];
+	string featName = fields[0];
 	if (line_num == 1) {
-	    // cout << "skipping first line w/ first field: [" << skillName << "]" << endl;
-	    assert(skillName == "SlotName");
+	    // cout << "skipping first line w/ first field: [" << featName << "]" << endl;
+	    assert(featName == "SlotName");
 	    continue;
 	}
 
 	// see if something else already added an entity for this (eg, if the entity was listed
 	// as a component for another Entity)
 	EntityDefinition *entity;
-	string skillNameFQ = "Skill.";
-	skillNameFQ += skillName;
-	entity = GetEntity(skillNameFQ);
+	string featNameFQ = "Feat.";
+	featNameFQ += featName;
+	entity = GetEntity(featNameFQ);
 	if (entity != NULL) {
 	    // printf("%c %2d: %22s -> %d\n", '.', line_num, fields[0].c_str(), (int)fields.size());
-	    if (fn == "official_data/Utility Advancement.csv" && skillName == "Channel Smite") {
+	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
 		cout << "KNOWN DATA ERROR: Utility Advancement.csv has two rows for Channel Smite" << endl;
 	    } else {
 		assert(entity->ProcessedSpreadsheetDefinition == false);
@@ -306,22 +305,22 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    //printf("%c %2d: %22s -> %d\n", '+', line_num, fields[0].c_str(), (int)fields.size());
 
 	    entity = new EntityDefinition();
-	    entity->Name = skillName;
+	    entity->Name = featName;
 
 	    list<string> typeFields;
 	    typeFields.push_back(t);
-	    typeFields.push_back(skillName);
+	    typeFields.push_back(featName);
 	    entity->Type = typeHelper->GetType(typeFields);
-	    StoreEntity(skillNameFQ, entity);
+	    StoreEntity(featNameFQ, entity);
 	}
 	entity->ProcessedSpreadsheetDefinition = true;
 	    
 	// hack here to keep track of known errors in the data
 	if (entity->Requirements.size() != 0) {
-	    if (fn == "official_data/Utility Advancement.csv" && skillName == "Channel Smite") {
+	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
 		cout << "KNOWN DATA ERROR: Utility Advancement.csv has two rows for Channel Smite" << endl;
 	    } else {
-		// skills are ranked - always ranked - but we won't add the ranks of requirements or
+		// feats are ranked - always ranked - but we won't add the ranks of requirements or
 		// provides until we process them here
 		assert (entity->Requirements.size() == 0);
 	    }
@@ -335,7 +334,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
 	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
 	    if ((fields.size() - idx) < 5) {
-		cout << "ERROR: in " << fn << ", line " << line_num << ", " << skillName 
+		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
 		     << " rank " << rank << " has incomplete data - skipping" << endl;
 		continue;
 	    }
@@ -390,7 +389,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 
 	    // add the feat requirements
 	    reqStr = fields[idx+2];
-	    label = "Skill";
+	    label = "Feat";
 	    errMsg = "";
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
@@ -403,10 +402,10 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 
 	    
 	    // add the achievement requirements
-	    // Fighter is listed as both Achievement and Skill
+	    // Fighter is listed as both Achievement and Feat
 	    reqStr = fields[idx+3];
 	    // label = "Achievement";
-	    label = "Skill";
+	    label = "Feat";
 	    errMsg = "";
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
@@ -702,33 +701,33 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	req->Quantity = atoi(fields[14].c_str());
 	entity->Requirements[0].push_back(req);
 
-	// Skill requirement
-	string skillName = fields[2];
-	int skillLevel = atoi(fields[3].c_str());
+	// Feat requirement
+	string featName = fields[2];
+	int featLevel = atoi(fields[3].c_str());
 
-	string skillNameFqn = "Skill." + skillName;
+	string featNameFqn = "Feat." + featName;
 	req = new LineItem();
-	req->Entity = GetEntity(skillNameFqn);
+	req->Entity = GetEntity(featNameFqn);
 	if (req->Entity != NULL) {
 	    //cout << "_";
 	    list<string> typeFields;
-	    typeFields.push_back("Skill");
-	    typeFields.push_back(skillName);
+	    typeFields.push_back("Feat");
+	    typeFields.push_back(featName);
 	    req->Entity->Type = typeHelper->GetType(typeFields);
 
 	} else {
 	    //cout << "+";
 	    list<string> typeFields;
-	    typeFields.push_back("Skill");
-	    typeFields.push_back(skillName);
+	    typeFields.push_back("Feat");
+	    typeFields.push_back(featName);
 
 	    req->Entity = new EntityDefinition();
-	    req->Entity->Name = skillName;
+	    req->Entity->Name = featName;
 	    req->Entity->Type = typeHelper->GetType(typeFields);
 	    req->Entity->ProcessedSpreadsheetDefinition = false;
-	    StoreEntity(skillNameFqn, req->Entity);
+	    StoreEntity(featNameFqn, req->Entity);
 	}
-	req->Quantity = skillLevel;
+	req->Quantity = featLevel;
 	entity->Requirements[0].push_back(req);
 	
 	// now all the components - we only have three per recipe right now but I think there

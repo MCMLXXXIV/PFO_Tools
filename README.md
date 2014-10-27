@@ -51,10 +51,11 @@ TODO
 - [x] Skill Processor
 - [x] Add detailed Entity dumper to verify correct parsing
 - [ ] Make the make file build in an obj dir and store the resulting binary in a bin dir
-- [ ] Fix command line parsing to allow showing plan for "Fighter 8", etc
+- [x] Fix command line parsing to allow showing plan for "Fighter 8", etc
 - [ ] figure out how to and add a proper "make test" target
 - [x] undo the GetEntity dummy flag
-- [ ] rename skills to feats - maybe remove skill from the list of types - per Cheney post in EntityTypeHelper.cc
+- [x] rename skills to feats - maybe remove skill from the list of types - per Cheney post in EntityTypeHelper.cc
+- [ ] add "Provides" nodes to OfficialData digesters
 
 
 BUGS
