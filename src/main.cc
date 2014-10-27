@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
     // return 0;
 
     // 
-    entity = rulesGraph->GetEntity(0,"Skill.Armorsmith");
+    entity = rulesGraph->GetEntity("Skill.Armorsmith");
     assert(entity != NULL);
     // cout << EntityDefinition::Dump(*entity) << endl; return 0;
 
@@ -88,13 +88,13 @@ int main(int argc, char **argv) {
 
     headEntity->Type = EntityTypeHelper::Instance()->GetType(typeStringName);
 
-    // entity = rulesGraph->GetEntity(0,"Item.Pot Steel Plate");
-    // entity = rulesGraph->GetEntity(0,"Item.Journeyman's Speed Potion");
+    // entity = rulesGraph->GetEntity("Item.Pot Steel Plate");
+    // entity = rulesGraph->GetEntity("Item.Journeyman's Speed Potion");
     
     headEntity->Requirements.push_back(list<LineItem*>());
 
-    //entity = rulesGraph->GetEntity(0,"Item.Hunter's Longbow");
-    entity = rulesGraph->GetEntity(0,"Adept's Spellbook");
+    //entity = rulesGraph->GetEntity("Item.Hunter's Longbow");
+    entity = rulesGraph->GetEntity("Adept's Spellbook");
     assert(entity != NULL);
 
     // cout << EntityDefinition::Dump(*entity) << endl; return 0;
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     LineItem *stuff = new LineItem(entity, 2.0);
     headEntity->Requirements[0].push_back(stuff);
 
-    entity = rulesGraph->GetEntity(0,"Item.Yew and Iron Splint");
+    entity = rulesGraph->GetEntity("Item.Yew and Iron Splint");
     assert(entity != NULL);
     stuff = new LineItem(entity, 1.0);
     //headEntity->Requirements[0].push_back(stuff);
@@ -173,7 +173,7 @@ void DumpItemRequirements(string itemsArg) {
 	    rankInName = -1;
 	}
 
-	entity = OfficialData::Instance()->GetEntity(0,entityName);
+	entity = OfficialData::Instance()->GetEntity(entityName);
 	if (entity == NULL) {
 	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
 	    return;
@@ -209,7 +209,7 @@ void GetPlanForItems(string itemsArg) {
 	    entityName = itemsVec[0];
 	}
 
-	entity = OfficialData::Instance()->GetEntity(0,entityName);
+	entity = OfficialData::Instance()->GetEntity(entityName);
 	if (entity == NULL) {
 	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
 	    return;
@@ -266,7 +266,7 @@ void SearchForItemsThatRequire(string itemsArg) {
 
     if (itemsVec.size() == 1) {
 	EntityDefinition *entity = NULL;
-	entity = OfficialData::Instance()->GetEntity(0,itemsVec[0]);
+	entity = OfficialData::Instance()->GetEntity(itemsVec[0]);
 	if (entity == NULL) {
 	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
 	    return;

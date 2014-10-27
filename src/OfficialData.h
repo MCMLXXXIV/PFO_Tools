@@ -14,7 +14,7 @@ class OfficialData {
  public:
     static OfficialData* Instance();
     int ProcessSpreadsheetDir(string dirname);
-    EntityDefinition* GetEntity(int dummy, string name);
+    EntityDefinition* GetEntity(string name);
     void Dump();
     void SearchForItemsThatRequire(EntityDefinition* entity);
     
@@ -50,7 +50,7 @@ class OfficialData {
 
     bool StoreEntity(string fullyQualifiedName, EntityDefinition *entity);
 
-    map< string, EntityDefinition* > EntitiesV2;
+    map< string, EntityDefinition* > Entities;
     map< string, FileProcessor > FileProcessorMap;
 
     static OfficialData* m_pInstance;

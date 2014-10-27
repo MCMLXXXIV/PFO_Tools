@@ -71,7 +71,7 @@ void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
     bool foundOne = false;
     set<EntityDefinition*> searched;
     map< string, EntityDefinition* >::iterator tlItr;
-    for (tlItr = EntitiesV2.begin(); tlItr != EntitiesV2.end(); ++tlItr) {
+    for (tlItr = Entities.begin(); tlItr != Entities.end(); ++tlItr) {
 	string key = (*tlItr).first;
 	EntityDefinition* entity = (*tlItr).second;
 	if (entity->HasRequirement(targetEntity, searched)) {
@@ -115,7 +115,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
 	string featNameFQ = "Skill.";
 	featNameFQ += featNameShort;
 
-	EntityDefinition *entity = GetEntity(0,featNameFQ);
+	EntityDefinition *entity = GetEntity(featNameFQ);
 	if (entity == NULL) {
 	    entity = new EntityDefinition();
 	    entity->Name = featNameShort;
@@ -172,19 +172,19 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
 
 void OfficialData::Dump() {
 
-    cout << "Have " << EntitiesV2.size() << " entities" << endl;
+    cout << "Have " << Entities.size() << " entities" << endl;
 
     map<string, EntityDefinition*>::iterator itr;
-    for (itr = EntitiesV2.begin(); itr != EntitiesV2.end(); ++itr) {
+    for (itr = Entities.begin(); itr != Entities.end(); ++itr) {
 	cout << *((*itr).second) << endl;
     }
 }
 
 bool OfficialData::StoreEntity(string fullyQualifiedName, EntityDefinition *entity) {
     map< string, EntityDefinition* >::iterator entityMapEntry;
-    entityMapEntry = EntitiesV2.find(fullyQualifiedName);
-    if (entityMapEntry == EntitiesV2.end()) {
-	EntitiesV2[fullyQualifiedName] = entity;
+    entityMapEntry = Entities.find(fullyQualifiedName);
+    if (entityMapEntry == Entities.end()) {
+	Entities[fullyQualifiedName] = entity;
 	return true;
     } else {
 	bool alreadyExists = true;
@@ -195,10 +195,10 @@ bool OfficialData::StoreEntity(string fullyQualifiedName, EntityDefinition *enti
 }
 
 
-EntityDefinition* OfficialData::GetEntity(int dummy, string fullyQualifiedName) {
+EntityDefinition* OfficialData::GetEntity(string fullyQualifiedName) {
     map< string, EntityDefinition* >::iterator entityMapEntry;
-    entityMapEntry = EntitiesV2.find(fullyQualifiedName);
-    if (entityMapEntry == EntitiesV2.end()) {
+    entityMapEntry = Entities.find(fullyQualifiedName);
+    if (entityMapEntry == Entities.end()) {
 	return NULL;
     } else {
 	return (*entityMapEntry).second;
@@ -235,7 +235,7 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     }
     closedir(dp);
 
-    cout << "Done processing spreadsheet data; have " << EntitiesV2.size() << " entities" << endl;
+    cout << "Done processing spreadsheet data; have " << Entities.size() << " entities" << endl;
 
     return 0;
 }
@@ -294,7 +294,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	EntityDefinition *entity;
 	string skillNameFQ = "Skill.";
 	skillNameFQ += skillName;
-	entity = GetEntity(0, skillNameFQ);
+	entity = GetEntity(skillNameFQ);
 	if (entity != NULL) {
 	    // printf("%c %2d: %22s -> %d\n", '.', line_num, fields[0].c_str(), (int)fields.size());
 	    if (fn == "official_data/Utility Advancement.csv" && skillName == "Channel Smite") {
@@ -356,7 +356,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    // add the exp requirement
 	    string entityName = "ExperiencePoint";
 	    LineItem *req = new LineItem();
-	    req->Entity = GetEntity(0, entityName);
+	    req->Entity = GetEntity(entityName);
 	    if (req->Entity == NULL) {
 		list<string> typeFields;
 		typeFields.push_back(entityName);
@@ -524,7 +524,7 @@ LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityT
     // TODO: Dump all entities and make sure they are all correct...
     string fqn = entityTypeName;
     fqn += "." + key;
-    EntityDefinition* entity = GetEntity(0, fqn);
+    EntityDefinition* entity = GetEntity(fqn);
     if (entity == NULL) {
 	entity = new EntityDefinition();
 	entity->Name = key;
@@ -641,7 +641,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	EntityDefinition *entity;
 	string fullyQualifiedName = "Item.";
 	fullyQualifiedName += *name;
-	entity = GetEntity(0, fullyQualifiedName);
+	entity = GetEntity(fullyQualifiedName);
 	if (entity != NULL) {
 	    // only add a Requirements and Provides list if we process the Entity from the spreadsheet
 	    if (entity->Requirements.size() < 1) {
@@ -689,7 +689,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 
 	// time requirement
 	req = new LineItem();
-	req->Entity = GetEntity(0, "Time");
+	req->Entity = GetEntity("Time");
 	if (req->Entity == NULL) {
 	    list<string> typeFields;
 	    typeFields.push_back("Time");
@@ -708,7 +708,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 
 	string skillNameFqn = "Skill." + skillName;
 	req = new LineItem();
-	req->Entity = GetEntity(0, skillNameFqn);
+	req->Entity = GetEntity(skillNameFqn);
 	if (req->Entity != NULL) {
 	    //cout << "_";
 	    list<string> typeFields;
@@ -739,7 +739,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	    string componentNameFqn = "Item." + componentName;
 	    req = new LineItem();
 
-	    req->Entity = GetEntity(0, componentNameFqn);
+	    req->Entity = GetEntity(componentNameFqn);
 
 	    if (req->Entity == NULL) {
 		list<string> typeFields;
