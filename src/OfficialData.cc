@@ -257,17 +257,26 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
     }
     string line;
     int line_num = 0;
+    uint slotNameColumn = 0;
     while(getline(fin, line)) {
 	++line_num;
 	// there is only one line per feat with each line having the data out to the max feat (121 total fields)
 	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
 
 	if (fields.size() < 1) {
-	    cout << fn << ":" << line_num << " is empty.  Skipping..." << endl;
+	    cout << "WARNING: " << fn << ":" << line_num << " is empty.  Skipping..." << endl;
+	    assert(line_num > 1);
 	    continue;
 	}
 	
-	// SlotName
+	if (fields[0].size() == 0) {
+	    cout << "WARNING: " << fn << ":" << line_num << " has " << fields.size() << " columns but an empty name.  Skipping..." << endl;
+	    assert(line_num > 1);
+	    continue;
+	}
+
+	//Index (but only in Points Advancement.csv as of 26 Oct dump)
+	//SlotName
 	//Exp Lv1
 	//Category Lv1
 	//Feat Lv1
@@ -281,12 +290,24 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	//AbilityReq Lv2
 	//AbilityBonus Lv2
 
-	string featName = fields[0];
 	if (line_num == 1) {
 	    // cout << "skipping first line w/ first field: [" << featName << "]" << endl;
-	    assert(featName == "SlotName");
+	    // find the "SlotName" column and skip the line
+	    // I could make this parser digest the header column names and then fetch the cells
+	    // by refering to the name - but that would be just as brittle because there is no
+	    // guarantee that Goblinworks won't make an unannounced change to that also
+	    for (uint idx = 0; idx < fields.size(); ++idx) {
+		if (fields[idx] == "SlotName") {
+		    slotNameColumn = idx;
+		    // just to be aware when things change again
+		    assert(slotNameColumn < 2);
+		    break;
+		}
+	    }
 	    continue;
 	}
+
+	string featName = fields[slotNameColumn];
 
 	// see if something else already added an entity for this (eg, if the entity was listed
 	// as a component for another Entity)
@@ -326,9 +347,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    }
 	}
 
-	uint idx = 1;
-	int rank = 1;
-	for (idx = 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
+	uint idx;
+	int rank;
+	for (idx = slotNameColumn + 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
 
 	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ]
 	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
@@ -435,6 +456,98 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 
     fin.close();
 
+    return true;
+}
+
+bool OfficialData::ParseProgressionFile(string fn) {
+    // open the file named fn
+    // parse the data cells
+    // foreach row
+    //    make an entity definition and fill it out
+    //    store the entity in the global entity map by the name
+
+    // cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
+
+    ifstream fin(fn.c_str());
+    if (!fin.is_open()) {
+	cerr << "failed to read file " << fn << " errno: " << errno << endl;
+	return false;
+    }
+    string line;
+    int line_num = 0;
+    uint slotNameColumn = 0;
+    while(getline(fin, line)) {
+	++line_num;
+	// there is only one line per feat with each line having the data out to the max feat (121 total fields)
+	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+
+	if (fields.size() < 1) {
+	    cout << "WARNING: " << fn << ":" << line_num << " is empty.  Skipping..." << endl;
+	    assert(line_num > 1);
+	    continue;
+	}
+	
+	if (fields[0].size() == 0) {
+	    cout << "WARNING: " << fn << ":" << line_num << " has " << fields.size() << " columns but an empty name.  Skipping..." << endl;
+	    assert(line_num > 1);
+	    continue;
+	}
+
+	//Index (but only in Points Advancement.csv)
+	//SlotName
+	//Exp Lv1
+	//Category Lv1
+	//Feat Lv1
+	//Achievement Lv1
+	//AbilityReq Lv1
+	//AbilityBonus Lv1
+	//Exp Lv2
+	//Category Lv2
+	//Feat Lv2
+	//Achievement Lv2
+	//AbilityReq Lv2
+	//AbilityBonus Lv2
+
+	if (line_num == 1) {
+	    // cout << "skipping first line w/ first field: [" << featName << "]" << endl;
+	    // find the "SlotName" column and skip the line
+	    // I could make this parser digest the header column names and then fetch the cells
+	    // by refering to the name - but that would be just as brittle because there is no
+	    // guarantee that Goblinworks won't fat finger that also
+	    for (uint idx = 0; idx < fields.size(); ++idx) {
+		if (fields[idx] == "SlotName") {
+		    slotNameColumn = idx;
+		    // just to be aware when things change again
+		    assert(slotNameColumn < 2);
+		    break;
+		}
+	    }
+	    cout << "slotNameColumn=" << slotNameColumn << endl;
+	}
+
+	string featName = fields[slotNameColumn];
+	cout << "FeatName:[" << featName << "]" << endl; 
+
+	uint idx;
+	int rank;
+	for (idx = slotNameColumn + 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
+
+	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ]
+	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
+	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
+	    if ((fields.size() - idx) < 5) {
+		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
+		     << " rank " << rank << " has incomplete data - skipping" << endl;
+		continue;
+	    }
+
+	    vector<string> colNames = {"Exp", "Cat", "Fea", "ach", "aRq", "aBo"};
+	    for (uint setIdx = 0; setIdx < 6; ++setIdx) {
+		cout << colNames[setIdx] << " " << rank << " " << fields[idx+setIdx] << endl;
+	    }
+	}
+    }
+    fin.close();
     return true;
 }
 

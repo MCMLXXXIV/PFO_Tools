@@ -17,7 +17,9 @@ class OfficialData {
     EntityDefinition* GetEntity(string name);
     void Dump();
     void SearchForItemsThatRequire(EntityDefinition* entity);
-    
+
+    static bool ParseProgressionFile(string fn);
+
  private:
     OfficialData();
 

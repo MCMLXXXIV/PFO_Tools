@@ -39,6 +39,11 @@ int main(int argc, char **argv) {
 	return 0;
     }
 
+    if (opts.ParseProgressionFile) {
+	OfficialData::ParseProgressionFile(opts.Items);
+	return 0;
+    }
+
     OfficialData* rulesGraph = OfficialData::Instance();
     rulesGraph->ProcessSpreadsheetDir("official_data");
     

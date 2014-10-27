@@ -19,8 +19,12 @@ $ cd xlsx2csv
 $ ./xlsx2csv.py -a input.xlsx outputDir
 
 The steps will be
-   1. download the xlsx file from google drive
-   2. run ./xlsx2csv.py -a PFOWiki_OfficialData.xlsx official_data
+   1. download the xlsx file from google drive (via a web client because I can't see how to get it via wget)
+   2. store the xlsx file in my drop box
+   3. copy the xlsx file to my working dir
+   4. cd to my working dir
+   5. run ./xlsx2csv.py -a PFOWiki_OfficialData.xlsx official_data
+   6. run src/arch_test
 
 
 Status

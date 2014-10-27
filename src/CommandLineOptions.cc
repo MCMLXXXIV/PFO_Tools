@@ -14,6 +14,7 @@ CommandLineOptionsEncapsulation::CommandLineOptionsEncapsulation() {
     GetPlanForItem = false;
     ParseError = false;
     SearchForItemsThatRequire = false;
+    ParseProgressionFile = false;
 }
 
 bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
@@ -32,7 +33,7 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
             {0,         0,              0, 0 }
         };
 
-	c = getopt_long(argc, argv, "r:dp:h", long_options, &option_index);
+	c = getopt_long(argc, argv, "r:dp:hP:", long_options, &option_index);
         if (c == -1)
             break;
 	
@@ -79,6 +80,10 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
 	    GetPlanForItem = true;
 	    Items = optarg;
 	    break;
+	case 'P':
+	    ParseProgressionFile = true;
+	    Items = optarg;
+	    break;
 	default: ;
             // printf("?? getopt returned character code 0%o ??\n", c);
         }
@@ -91,7 +96,7 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
         printf("\n");
     }
 
-    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem && !SearchForItemsThatRequire) {
+    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem && !SearchForItemsThatRequire && !ParseProgressionFile) {
 	ParseError = true;
 	ErrMsg = "no (valid) args";
     }
@@ -105,6 +110,7 @@ void CommandLineOptionsEncapsulation::ShowHelp() {
 	 << "   [-d|--dump]                 dump all parsed entities" << endl
 	 << "   [[-r|--reqs] item[,item2]]  dump the known requirements for the item(s)" << endl
 	 << "   [[-p|--plan] item[,item2]]  show a plan to create the item(s)" << endl
+	 << "   [-P file]                   parse and dump a progression file" << endl
 	 << "   [--findReqParents item]     debug: search all known enities for those that have item as a requirement" << endl
 	 << endl;
 }

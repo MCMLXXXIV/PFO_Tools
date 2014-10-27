@@ -5,7 +5,7 @@
 #include <cassert>
 
 // Perception is listed as a skill in Skills Advancement.csv but is refered to as a
-// Feat in Utility Advancement.csv (in one of the "Feat LvX" columns.
+// Feat in Utility Advancement.csv (in one of the "Feat LvX" columns).
 
 // Strength is two entities: an AbilityScore and an Expendable (Expendables Advancement.csv)
 
