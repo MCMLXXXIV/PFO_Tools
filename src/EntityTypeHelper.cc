@@ -9,8 +9,23 @@
 
 // Strength is two entities: an AbilityScore and an Expendable (Expendables Advancement.csv)
 
+// ---------------------------------------------------------------------------------------------- //
+//Stephen Cheney Jun 25, 2014, 09:53 AM
+//http://paizo.com/threads/rzs2r6h7&page=13?Goblinworks-Blog-The-War-of-the-Towers#604
+//
+//For example, sometimes we'll mention "abilities" and "skills" when we're really talking about
+//"feats." A feat, in our parlance, is basically anything that you can spend XP to add to your
+//character. Feats have subcategories like Skills, Upgrades, Proficiencies, Expendables, and
+//Combat Feats that each work in a distinct way. It's mostly semantics, but we at least try to
+//be consistent in the official documentation so as to not be even more confusing.
+//
+//Similarly, the game does not have "classes" only "roles." But, since the roles are based
+//heavily on tabletop's classes, we'll sometimes say that instead of the official term and risk
+//confusion.
+// ---------------------------------------------------------------------------------------------- //
+
 const string aTypes[] = {"AbilityScore","Achievement","AchievementPoint","ExperiencePoint","Feat","Item","LogicAnd","LogicOr","Recipe","Skill","Time"};
-const string uTypes[] = {"Achievement","Feat","Skill","AchievementPoint","AbilityScore"};
+const string uTypes[] = {"AbilityScore","Achievement","AchievementPoint","Feat","Skill"};
 const string rTypes[] = {"Achievement","Feat","Skill"};
 const string fTypes[] = {"AbilityScore"};
 const set<string> EntityTypeHelper::AllowedTopLevelTypes (aTypes, aTypes + sizeof(aTypes)/sizeof(aTypes[0]));

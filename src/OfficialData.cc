@@ -206,34 +206,6 @@ EntityDefinition* OfficialData::GetEntity(int dummy, string fullyQualifiedName) 
 }
 
 
-
-//EntityDefinition* OfficialData::FindEntity(string type, string name) {
-//    
-//    // get the short id for this type
-//    list<string> typeFields;
-//    typeFields.push_back(type);
-//    short *tlTypeId = EntityTypeHelper::Instance()->GetType(typeFields);
-//
-//    map< string, EntityDefinition* >::iterator entityMapEntry;
-//    EntityDefinition *entity;
-//    entityMapEntry = Entities.find(name);
-//    if (entityMapEntry == Entities.end()) {
-//	return NULL;
-//    }
-//
-//    entity = (*entityMapEntry).second;
-//    if (entity->Type[0] != tlTypeId[0]) {
-//	list<string> typeNames = EntityTypeHelper::Instance()->GetType(entity->Type);
-//	string oldType = typeNames.front();
-//	cout << "ERROR: multiple entities with name [" << name << "]"
-//	     << " oldType:" << oldType << "; newType:" << type
-//	     << endl;
-//    }
-//    assert(entity->Type[0] == tlTypeId[0]);
-//
-//    return entity;
-//}
-
 int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     DIR *dp;
     struct dirent *dirp;
@@ -290,6 +262,11 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	++line_num;
 	// there is only one line per skill with each line having the data out to the max skill (121 total fields)
 	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+
+	if (fields.size() < 1) {
+	    cout << fn << ":" << line_num << " is empty.  Skipping..." << endl;
+	    continue;
+	}
 	
 	// SlotName
 	//Exp Lv1
@@ -311,7 +288,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    assert(skillName == "SlotName");
 	    continue;
 	}
-	
+
 	// see if something else already added an entity for this (eg, if the entity was listed
 	// as a component for another Entity)
 	EntityDefinition *entity;
@@ -480,7 +457,7 @@ LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeN
 	if (strstr((*groupEntry).c_str(), " or ")) {
 	    list<string> orEntityLongName = { string("LogicOr") };
 	    EntityDefinition *orEntity = new EntityDefinition();
-	    orEntity->Name = "LogicAnd";
+	    orEntity->Name = "LogicOr";
 	    orEntity->Type = EntityTypeHelper::Instance()->GetType(orEntityLongName);
 	    orEntity->Requirements.push_back(*(new list<LineItem*>));
 	    
@@ -499,8 +476,14 @@ LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeN
 	} else {
 	    LineItem *newReq = BuildLineItemFromKeyEqualsVal((*groupEntry), entityTypeName);
 	    if (newReq == NULL) {
-		errMsg = "failed to parse 'and' requirement";
-		return NULL;
+		// ignore empty entries - the given data has some trailing commas
+		// EG: Feat Achievements.csv
+		//    Willpower Bonus=7, Arcane Attack Bonus=7, Power=26,
+		continue;
+		//errMsg = "failed to parse 'and' requirement [";
+		//errMsg += (*groupEntry);
+		//errMsg += "]";
+		//return NULL;
 	    }
 	    andedLineItems.push_back(newReq);
 	}

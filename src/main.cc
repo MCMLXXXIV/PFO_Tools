@@ -14,6 +14,7 @@
 #include "Utils.h"
 #include "CommandLineOptions.h"
 
+void TestUtilsSplit();
 void TestSplitKeyValueOnChar();
 void TestRankSpliter();
 void DumpItemRequirements(string items_arg);
@@ -24,6 +25,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
+    // TestUtilsSplit(); return 0;
     // TestRankSpliter() ; return 0;
 
     CommandLineOptionsEncapsulation opts;
@@ -146,7 +148,7 @@ int main(int argc, char **argv) {
     cout << endl;
 
     cout << endl;
-    cout << EntityDefinition::Dump(*entity) << endl; return 0;
+    cout << EntityDefinition::Dump(*entity, 1.0) << endl; return 0;
     return 0;
 }
 
@@ -158,13 +160,29 @@ void DumpItemRequirements(string itemsArg) {
 
     if (itemsVec.size() == 1) {
 	EntityDefinition *entity = NULL;
-	entity = OfficialData::Instance()->GetEntity(0,itemsVec[0]);
+
+	string entityName;
+	int rankInName;
+	char *namePart;
+	if (Utils::RankInName(itemsVec[0].c_str(), &namePart, rankInName)) {
+	    entityName = namePart;
+	    delete namePart;
+	    // headGoal->Quantity = rankInName * 1.0;	    
+	} else {
+	    entityName = itemsVec[0];
+	    rankInName = -1;
+	}
+
+	entity = OfficialData::Instance()->GetEntity(0,entityName);
 	if (entity == NULL) {
 	    cout << "can't find this item: [" << itemsVec[0] << "]" << endl;
 	    return;
 	}
-	cout << EntityDefinition::Dump(*entity) << endl;
-    }
+
+	cout << EntityDefinition::Dump(*entity, (rankInName * 1.0)) << endl;
+    } else {
+	cout << "haven't implemented this feature for multiple items" << endl;
+    } 
 
     return;
 }
@@ -222,6 +240,7 @@ void GetPlanForItems(string itemsArg) {
 	trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 	
 	trackedResources.SetTracked(trackedTypes);
+	trackedResources.DumpTrackedResources();
 
 	Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
 	
@@ -233,7 +252,8 @@ void GetPlanForItems(string itemsArg) {
 	cout << "Final Supply:" << endl;
 	bank.Dump();
 	cout << endl;
-	
+    } else {
+	cout << "haven't implemented this feature for multiple items" << endl;	
     }
     return;
 }
@@ -252,6 +272,8 @@ void SearchForItemsThatRequire(string itemsArg) {
 	    return;
 	}
 	OfficialData::Instance()->SearchForItemsThatRequire(entity);
+    } else {
+	cout << "haven't implemented this feature for multiple items" << endl;
     }
 
     return;
@@ -291,14 +313,22 @@ void TestSplitKeyValueOnChar() {
 
 
 void TestUtilsSplit() {
-
-    vector<string> foo = Utils::SplitCommaSeparatedValuesWithQuotedFields("foo,bar ,\"choo,crab\", ,blue, green, \"in, out \", red \"and, this\", "" , \"rog ");
+    
+    vector<string> foo = Utils::SplitCommaSeparatedValuesWithQuotedFields("foo,bar ,\"choo,crab\", ,blue, green, \"in, out \", red \"and, this\", "" , \"rog,");
     vector<string>::iterator fItr;
     int idx = 0;
     for (fItr = foo.begin(); fItr != foo.end(); ++fItr) {
 	cout << idx << " [" << *fItr << "]" << endl;
 	++idx;
     }
+
+    foo = Utils::SplitCommaSeparatedValuesWithQuotedFields("Willpower Bonus=7, Arcane Attack Bonus=7, Power=26,");
+    idx = 0;
+    for (fItr = foo.begin(); fItr != foo.end(); ++fItr) {
+	cout << idx << " [" << *fItr << "]" << endl;
+	++idx;
+    }
+
     return;
 }
 

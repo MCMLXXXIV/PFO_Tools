@@ -63,7 +63,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	if (stillNeeded <= 0.0) {
 	    bool isLeaf = true;
 	    bool bankFilled = true;
-	    cout << req->Quantity << " of " << req->Entity->Name << " satisfied from bank" << endl;
+	    cout << "BANK: " << req->Quantity << " of " << req->Entity->Name << " satisfied from bank" << endl;
 	    return new Gate(isLeaf, bankFilled, req);
 	}
 	needed = stillNeeded;
@@ -115,7 +115,10 @@ Gate* Planners::GetPlanStep(LineItem *req,
     }
     for (; reqEntry != reqs->end(); reqEntry++) {
 	LineItem *subReq = *reqEntry;
-	if (!trackedResources.IsTracked(subReq->Entity->Type)) { continue; }
+	if (!trackedResources.IsTracked(subReq->Entity->Type)) {
+	    cout << "skipping untracked requirement: " << subReq->Entity->Name << endl;
+	    continue;
+	}
 	if (EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "LogicOr")) {
 	    gate->SetIsOrGate(true);
 	    cout << req->Entity->Name << " skipping or gate" << endl;
@@ -138,13 +141,13 @@ Gate* Planners::GetPlanStep(LineItem *req,
 
     if (EntityTypeHelper::Instance()->IsUniversal(req->Entity->Type[0])) {
 	// for example, skills, achievements, ability scores
+	cout << "BANK: deposit " << req->Quantity << " of " << req->Entity->Name << " for " << parentLineItem->Entity->Name << endl; 
 	bank.Deposit(req);
     } else if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item") && productConsumed == false) {
 	// for example, the item goal(s)
 	bank.Deposit(req);
     }
     if (newGates < 1) {
-	
 	string costMessage;
 	if (parentLineItem == NULL) {
 	    costMessage = req->Entity->Name;

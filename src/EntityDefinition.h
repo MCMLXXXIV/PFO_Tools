@@ -6,6 +6,7 @@
 #include <vector>
 #include <iostream>
 #include <set>
+#include <map>
 
 class LineItem;
 
@@ -15,7 +16,7 @@ class EntityDefinition {
 
  public:
     // EntityDefinition();
-    static string Dump(const EntityDefinition &item);
+    static string Dump(const EntityDefinition &item, double quantity);
     bool HasRequirement(EntityDefinition* targetEntity, set<EntityDefinition*> &searched);
 
     string Name;
@@ -27,8 +28,8 @@ class EntityDefinition {
     vector < list < LineItem* > > Provides;
 
  private:
-    static string Dump(const EntityDefinition &item, const char* indent, double quantity);
-    static void Dump_StdOut(const EntityDefinition &item, const char* indent, double quantity);
+    static string Dump(const EntityDefinition &item, const char* indent, double quantity) { return ""; };
+    static void Dump_StdOut(const EntityDefinition &item, const char* indent, double quantity, map<const EntityDefinition*, int> &shown);
 };
 
 ostream &operator<<(ostream &os, const EntityDefinition &item);

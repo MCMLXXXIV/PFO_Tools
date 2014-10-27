@@ -1,10 +1,13 @@
 #include "TrackedResources.h"
 #include "EntityTypeHelper.h"
 
+#include <iostream>
+
 using namespace std;
 
 void TrackedResources::SetTracked(list<short*> tracked) {
-    int maxTopLevelEntityId = EntityTypeHelper::Instance()->GetMaxEntityId(NULL);
+    EntityTypeHelper *h = EntityTypeHelper::Instance();
+    int maxTopLevelEntityId = h->GetMaxEntityId(NULL);
     set<short> trackedTopLevelTypes;
     list<short*>::iterator itr;
     for (itr = tracked.begin(); itr != tracked.end(); ++itr) {
@@ -20,14 +23,25 @@ void TrackedResources::SetTracked(list<short*> tracked) {
     }
 
     for (itr = tracked.begin(); itr != tracked.end(); ++itr) {
-	string key = "";
-	short *type = *itr;
-	for (int idx = 0; type[idx] > 0; ++idx) {
-	    if (key.size() < 1) { key += "."; }
-	    key += to_string(type[idx]);
-	}
+	string key = h->ToIdString(*itr);
 	TrackedByInternalTypeKey[key] = true;
     }
+
+    // also, logicAnd and logicOr nodes are tracked always
+    list<string> typeName = { "LogicAnd" };
+    short *logicGate = h->GetType(typeName);
+    string typeStr = h->ToIdString(logicGate);
+    cout << "adding " << typeName.front() << ": " << typeStr << endl;
+    TrackedByInternalTypeKey[typeStr] = true;
+    NotTrackedByInternalTypeKey.erase(typeStr);
+
+    typeName.clear();
+    typeName.push_back("LogicOr");
+    logicGate = h->GetType(typeName);
+    typeStr = h->ToIdString(logicGate);
+    cout << "adding " << typeName.front() << ": " << typeStr << endl;
+    TrackedByInternalTypeKey[typeStr] = true;
+    NotTrackedByInternalTypeKey.erase(typeStr);
 
     return;
 }
@@ -35,10 +49,23 @@ void TrackedResources::SetTracked(list<short*> tracked) {
 bool TrackedResources::IsTracked(short *type) {
     string key = "";
     for (int idx = 0; type[idx] > 0; ++idx) {
-	if (key.size() < 1) { key += "."; }
+	if (key.size() > 1) { key += "."; }
 	key += to_string(type[idx]);
 	if (NotTrackedByInternalTypeKey[key]) { return false; }
 	if (TrackedByInternalTypeKey[key]) { return true; }
     }
     return false;
+}
+
+void TrackedResources::DumpTrackedResources() {
+    cout << "Tracked:" << endl;
+    map<string, bool>::iterator itr = TrackedByInternalTypeKey.begin();
+    for (; itr != TrackedByInternalTypeKey.end(); ++itr) {
+	cout << (*itr).first << endl;
+    }
+    cout << endl << "NotTracked:" << endl;
+    itr = NotTrackedByInternalTypeKey.begin();
+    for (; itr != NotTrackedByInternalTypeKey.end(); ++itr) {
+	cout << (*itr).first << endl;
+    }
 }

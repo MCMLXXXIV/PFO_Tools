@@ -11,6 +11,7 @@ class TrackedResources {
  public:
     void SetTracked(list<short*> tracked);
     bool IsTracked(short *type); // short array terminated by 0 val
+    void DumpTrackedResources();
  private:
     map<string, bool> TrackedByInternalTypeKey;
     map<string, bool> NotTrackedByInternalTypeKey;

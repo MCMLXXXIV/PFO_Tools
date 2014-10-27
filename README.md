@@ -53,6 +53,8 @@ TODO
 - [ ] Make the make file build in an obj dir and store the resulting binary in a bin dir
 - [ ] Fix command line parsing to allow showing plan for "Fighter 8", etc
 - [ ] figure out how to and add a proper "make test" target
+- [ ] undo the GetEntity dummy flag
+- [ ] rename skills to feats - maybe remove skill from the list of types - per Cheney post in EntityTypeHelper.cc
 
 Nice to have:
 I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but

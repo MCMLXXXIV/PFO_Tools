@@ -24,65 +24,42 @@ ostream &operator<<(ostream &os, const EntityDefinition &item) {
 
 
 
-string EntityDefinition::Dump(const EntityDefinition &item) {
+string EntityDefinition::Dump(const EntityDefinition &item, double quantity) {
     // return Dump(item, "", -1.0);
-    Dump_StdOut(item, "", -1.0);
+    map<const EntityDefinition*, int> shown;
+    Dump_StdOut(item, "", quantity, shown);
     return "";
 }
 
-string EntityDefinition::Dump(const EntityDefinition &item, const char* indent, double quantity) {
+void EntityDefinition::Dump_StdOut(const EntityDefinition &item, const char* indent, double quantity,
+				   map<const EntityDefinition*, int> &shown) {
     EntityTypeHelper *h = EntityTypeHelper::Instance();
-    string retVal = indent;
+    bool isRanked = h->IsRanked(item.Type[0]);
+    bool isUniversal = h->IsUniversal(item.Type[0]);
+    int stopAtRank = -1;
+    bool preventRecurse = false;
 
-    cout << item.Name << endl;
-
-    if (strlen(indent) > 60) { return ""; }
-
-    char buf[16];
-    if (quantity < 0) {
-	retVal += "         ";
-    } else {
-	if (h->QuantityIsWholeNumber(item.Type[0])) {
-	    snprintf(buf, 15, "%5.f", quantity);
+    map<const EntityDefinition*, int>::iterator shownItr = shown.find(&item);
+    if (isRanked) {
+	int rank = (int)quantity;
+	if (shownItr == shown.end()) {
+	    shown[&item] = (int)quantity;
 	} else {
-	    snprintf(buf, 15, "%5.3f", quantity);
-	}
-	retVal += buf;
-	retVal += " of ";
-    }
-
-    if (item.ProcessedSpreadsheetDefinition) {
-	retVal += "*";
-    } else {
-	retVal += " ";
-    }
-    retVal += item.Name;
-    retVal += "; Incr:";
-    retVal += item.CreationIncrement;
-    retVal += "; Type:";
-    retVal += EntityTypeHelper::Instance()->ToIdString(item.Type);
-
-    if (item.Requirements.size() == 0) {
-	retVal += " (no requirements)\n";
-	return retVal;
-    } else {
-	vector < list < LineItem* > >::const_iterator rankItr;
-	for (rankItr = (item.Requirements).begin(); rankItr != item.Requirements.end(); ++rankItr) {
-	    const list<LineItem*> *reqs = &(*rankItr);
-	    list<LineItem*>::const_iterator itr;
-	    for (itr = reqs->begin(); itr != reqs->end(); ++itr) {
-		string newIndent = indent;
-		newIndent += "    ";
-		retVal += Dump(*((*itr)->Entity), newIndent.c_str(), (*itr)->Quantity); 
+	    if ((*shownItr).second < rank) {
+		stopAtRank = (*shownItr).second;
+		shown[&item] = rank;
+	    } else {
+		preventRecurse = true;
 	    }
 	}
+    } else {
+	if (shownItr != shown.end()) {
+	    if (!isUniversal) {
+		preventRecurse = true;
+	    }
+	}
+	shown[&item] = 0;
     }
-    retVal += "\n";
-    return retVal;
-}
-
-void EntityDefinition::Dump_StdOut(const EntityDefinition &item, const char* indent, double quantity) {
-    EntityTypeHelper *h = EntityTypeHelper::Instance();
     cout << indent;
 
     assert(strlen(indent) < 61);
@@ -108,30 +85,40 @@ void EntityDefinition::Dump_StdOut(const EntityDefinition &item, const char* ind
     }
     cout << "; Incr:" << item.CreationIncrement << "; Type:" << EntityTypeHelper::Instance()->ToIdString(item.Type);
 
+    if (preventRecurse) {
+	if (h->IsType(item.Type[0], "Item")) {
+	    cout << " (see requirements above)";
+	}
+	cout << endl;
+	return;
+    }
+
     if (item.Requirements.size() == 0) {
 	cout << " (no requirements)" << endl;
 	return;
     } else {
-	if (h->IsRanked(item.Type[0])) {
+	if (isRanked) {
 	    cout << "; " << item.Requirements.size() << " ranks" << endl;
-	    vector < list < LineItem* > >::const_iterator rankItr;
-	    int rank = 0;
-	    for (rank = 0, rankItr = (item.Requirements).begin(); rankItr != item.Requirements.end(); ++rankItr, ++rank) {
-		if (rank == 0) {
-		    assert((*rankItr).size() == 0);
+	    for (int rank = (int)quantity; rank > stopAtRank; --rank) {
+		if (rank >= (int)item.Requirements.size()) {
 		    continue;
 		}
+		const list<LineItem*> *reqs = &(item.Requirements[rank]);
+		if (rank == 0) {
+		    assert(reqs->size() == 0);
+		    continue;
+		}
+
 		cout << indent << "  Rank " << rank << " of " << item.Name << ":" << endl;
 		string newIndent = indent;
 		newIndent += "    ";
-		const list<LineItem*> *reqs = &(*rankItr);
 		list<LineItem*>::const_iterator itr;
 		for (itr = reqs->begin(); itr != reqs->end(); ++itr) {
 		    if ((*itr)->Entity == &item) {
 			snprintf(buf, 15, "%2.f", (*itr)->Quantity);
 			cout << newIndent << processedFlag << item.Name << ", rank " << buf << endl;
 		    } else {
-			Dump_StdOut(*((*itr)->Entity), newIndent.c_str(), (*itr)->Quantity); 
+			Dump_StdOut(*((*itr)->Entity), newIndent.c_str(), (*itr)->Quantity, shown); 
 		    }
 		}
 	    }
@@ -153,7 +140,7 @@ void EntityDefinition::Dump_StdOut(const EntityDefinition &item, const char* ind
 		    snprintf(buf, 15, "%2.f", (*itr)->Quantity);
 		    cout << newIndent << processedFlag << item.Name << ", rank " << buf << endl;
 		} else {
-		    Dump_StdOut(*((*itr)->Entity), newIndent.c_str(), (*itr)->Quantity); 
+		    Dump_StdOut(*((*itr)->Entity), newIndent.c_str(), (*itr)->Quantity, shown); 
 		}
 	    }
 	}
