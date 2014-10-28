@@ -40,7 +40,8 @@ class OfficialData {
     bool ParseAndStoreUtilityAdvancementFile(string fn);
 
     bool ParseAndStoreFeatAchievements(string fn);
-    
+    bool ParseAndStoreCrowdforgedRecipeDataFile(string fn);
+
     bool ParseAndStoreRecipeFile(string fn, string subtype);
     bool ParseAndStoreProgressionFile(string fn, string eType);
 

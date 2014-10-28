@@ -47,6 +47,7 @@ OfficialData::OfficialData() {
     FileProcessorMap["Reactive Advancement.csv"] = &OfficialData::ParseAndStoreReactiveAdvancementFile;
     FileProcessorMap["Utility Advancement.csv"] = &OfficialData::ParseAndStoreUtilityAdvancementFile;
     FileProcessorMap["Feat Achievements.csv"] = &OfficialData::ParseAndStoreFeatAchievements;
+    FileProcessorMap["RecipeYields_Crowdforged.csv"] = &OfficialData::ParseAndStoreCrowdforgedRecipeDataFile;
 }
 
 bool OfficialData::ParseAndStoreSkillsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
@@ -82,6 +83,42 @@ void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
     if (foundOne == false) {
 	cout << "didn't find this as a requirement - searched " << searched.size() << " entities" << endl;
     }
+}
+
+bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn) {
+    
+    ifstream fin(fn.c_str());
+    if (!fin.is_open()) {
+	cerr << "failed to read file " << fn << " errno: " << errno << endl;
+	return false;
+    }
+    string line;
+    int line_num = 0;
+    while(getline(fin, line)) {
+	++line_num;
+	if (line_num == 1) {
+	    assert(string("Skill,Rank,Recipe Name,Qty Produced") == line);
+	    continue;
+	}
+
+	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+	assert(fields.size() == 4);
+	
+	string itemName = fields[2];
+	EntityDefinition *entity = GetEntity("Item." + itemName);
+	if (entity == NULL) {
+	    bool foundEntity = (entity != NULL);
+	    cout << "Can't find " << itemName << endl;
+	    assert(foundEntity == true);
+	}
+
+	if (fields[3].size() > 0) {
+	    entity->CreationIncrement = atoi(fields[3].c_str());
+	}
+    }
+    fin.close();
+    cout << "parsed " << fn << endl;
+    return true;
 }
 
 bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
@@ -204,7 +241,6 @@ EntityDefinition* OfficialData::GetEntity(string fullyQualifiedName) {
     }
 }
 
-
 int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     DIR *dp;
     struct dirent *dirp;
@@ -215,16 +251,23 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
 	return errno;
     }
 
+    map<string,string> delayed;
     while ((dirp = readdir(dp))) {
-	string filepath;
 	struct stat filestat;
 
-
 	string fname = dirp->d_name;
-	filepath = directoryName + "/" + fname;
+	string filepath = directoryName + "/" + fname;
 
 	if (stat( filepath.c_str(), &filestat)) continue;
 	if (S_ISDIR( filestat.st_mode)) continue;
+
+	// I'm delaying this because I want to verify that this crowd forged data dump
+	// at least has the right item names - and I can't do that until I've parsed all
+	// the items.
+	if (fname == "RecipeYields_Crowdforged.csv") {
+	    delayed[fname] = filepath;
+	    continue;
+	}
 
 	if (FileProcessorMap[fname]) {
 	    (this->*FileProcessorMap[fname])(filepath);
@@ -233,6 +276,15 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
 	}	
     }
     closedir(dp);
+
+    map<string,string>::iterator itr;
+    for (itr = delayed.begin(); itr != delayed.end(); ++itr) {
+	if (FileProcessorMap[(*itr).first]) {
+	    (this->*FileProcessorMap[(*itr).first])((*itr).second);
+	} else {
+	    cout << "no handler for " << (*itr).first << endl;
+	}	
+    }	
 
     cout << "Done processing spreadsheet data; have " << Entities.size() << " entities" << endl;
 
@@ -786,15 +838,11 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	    entity->Provides.push_back(*(new list<LineItem*>));
 	    StoreEntity(fullyQualifiedName, entity);
 	}
-	// TODO FIXME TEST
-	// soon I'll add code to consume the secondary, crowd sourced, table that give the yield
-	// for refining stuff - for now, in order to do some testing of the goal solution code,
-	// I'm going to make it a random number
-	if (ignored == "Refine") {
-	    entity->CreationIncrement = (rand() % 4) + 1;
-	} else {
-	    entity->CreationIncrement = 1;
-	}
+
+	// leter I'll consume the secondary, crowd sourced, table that gives the yield
+	// for refining stuff
+	entity->CreationIncrement = 1;
+
 	entity->ProcessedSpreadsheetDefinition = true;
 	
 	LineItem *req;

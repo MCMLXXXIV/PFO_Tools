@@ -24,7 +24,11 @@ The steps will be
    3. copy the xlsx file to my working dir
    4. cd to my working dir
    5. run ./xlsx2csv.py -a PFOWiki_OfficialData.xlsx official_data
-   6. run src/arch_test
+   6. copy the "Refining Recipes - Please Enter Qty Produced" as "Other file types"
+   7. rename and copy into the official_data dir as RecipeYields_Crowdforged.csv
+   8. run src/arch_test
+   9. ...
+  10. Profit
 
 
 Status
