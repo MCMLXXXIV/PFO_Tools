@@ -53,8 +53,10 @@ Gate* Planners::GetPlanStep(LineItem *req,
     indent[depth*4] = '\0';
     memset(indent, ' ', depth*4);
 
+    EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
+
     char buf[16];
-    if (EntityTypeHelper::Instance()->QuantityIsWholeNumber(req->Entity->Type[0])) {
+    if (eTypeHelper->QuantityIsWholeNumber(req->Entity->Type[0])) {
 	snprintf(buf, 15, "%1.f", req->Quantity);
     } else {
 	snprintf(buf, 15, "%.3f", req->Quantity);
@@ -68,16 +70,14 @@ Gate* Planners::GetPlanStep(LineItem *req,
     ++callCount;
 
     double needed = req->Quantity;
-    if (bank.Has(req->Entity)) {
-	double stillNeeded = bank.Withdrawal(req);
-	if (stillNeeded <= 0.0) {
-	    bool isLeaf = true;
-	    bool bankFilled = true;
-	    cout << indent << "BANK: " << req->Quantity << " of " << req->Entity->Name << " satisfied from bank" << endl;
-	    return new Gate(isLeaf, bankFilled, req);
-	}
-	needed = stillNeeded;
+    double stillNeeded = bank.Withdrawal(req);
+    if (stillNeeded <= 0.0) {
+	bool isLeaf = true;
+	bool bankFilled = true;
+	cout << indent << "BANK: " << req->Quantity << " of " << req->Entity->Name << " satisfied from bank" << endl;
+	return new Gate(isLeaf, bankFilled, req);
     }
+    needed = stillNeeded;
 	
     int newGates = 0;
 
@@ -86,7 +86,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
     // all the others (like Items, Time, etc) do not
     // though I am toying with the idea of ranking items too - to track +1, +2 things, etc
     list < LineItem* > *reqs = NULL;
-    if (EntityTypeHelper::Instance()->IsRanked(req->Entity->Type[0])) {
+    if (eTypeHelper->IsRanked(req->Entity->Type[0])) {
 	// I fear rounding error - but in the case of Ranked entities, the Qty should always
 	// be a whole number.
 	unsigned rank = unsigned(req->Quantity + 0.1);
@@ -117,7 +117,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
     double remainder = 0.0;
     int manufactureCycles = 1;
     list< LineItem* >::iterator reqEntry = reqs->begin();
-    if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item")) {
+    if (eTypeHelper->IsType(req->Entity->Type[0], "Item")) {
 	assert(req->Entity->CreationIncrement > 0);
 	manufactureCycles = int(ceil(needed / req->Entity->CreationIncrement));
 	remainder = (req->Entity->CreationIncrement * manufactureCycles) - needed;
@@ -129,16 +129,16 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	    cout << indent << "skipping untracked requirement: " << subReq->Entity->Name << endl;
 	    continue;
 	}
-	if (EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "LogicOr")) {
+	if (eTypeHelper->IsType(subReq->Entity->Type[0], "LogicOr")) {
 	    gate->SetIsOrGate(true);
 	    cout << indent << req->Entity->Name << " skipping OR gate" << endl;
-	    cost.Add("OR Gate");
+	    cost.Add(subReq->Describe(req));
 	    continue;
 	}
 
 	LineItem *gateReq = new LineItem(*subReq);
-	if (EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "Item") ||
-	    EntityTypeHelper::Instance()->IsType(subReq->Entity->Type[0], "Time")) {
+	if (eTypeHelper->IsType(subReq->Entity->Type[0], "Item") ||
+	    eTypeHelper->IsType(subReq->Entity->Type[0], "Time")) {
 	    gateReq->Quantity = gateReq->Quantity * manufactureCycles;
 	}
 	
@@ -150,7 +150,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	newGates++;	
     }
 
-    if (EntityTypeHelper::Instance()->IsUniversal(req->Entity->Type[0])) {
+    if (eTypeHelper->IsUniversal(req->Entity->Type[0])) {
 	// for example, feats, achievements, ability scores
 	string parentEntity = "";
 	if (parentLineItem != NULL) {
@@ -158,7 +158,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}
 	cout << indent << "BANK: deposit " << req->Quantity << " of " << req->Entity->Name << parentEntity << endl; 
 	bank.Deposit(req);
-    } else if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item") && productConsumed == false) {
+    } else if (eTypeHelper->IsType(req->Entity->Type[0], "Item") && productConsumed == false) {
 	// for example, the item goal(s)
 	bank.Deposit(req);
     }
@@ -169,17 +169,17 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	} else {
 	    char buf[255];
 	    char *startHere = buf;
-	    if (EntityTypeHelper::Instance()->QuantityIsWholeNumber(req->Entity->Type[0])) {
-		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%0.f for ", req->Quantity);
+	    if (eTypeHelper->QuantityIsWholeNumber(req->Entity->Type[0])) {
+		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%4.f for ", req->Quantity);
 		startHere += charsAdded;
 	    } else {
-		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%.3f for ", req->Quantity);
+		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%5.3f for ", req->Quantity);
 		startHere += charsAdded;
 	    }
-	    if (EntityTypeHelper::Instance()->QuantityIsWholeNumber(parentLineItem->Entity->Type[0])) {
-		snprintf(startHere, (254 - (startHere-buf)), "%0.f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
+	    if (eTypeHelper->QuantityIsWholeNumber(parentLineItem->Entity->Type[0])) {
+		snprintf(startHere, (254 - (startHere-buf)), "%2.f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
 	    } else {
-		snprintf(startHere, (254 - (startHere-buf)), "%.3f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
+		snprintf(startHere, (254 - (startHere-buf)), "%5.3f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
 	    }
 	    costMessage = buf;
 	}
@@ -188,7 +188,7 @@ Gate* Planners::GetPlanStep(LineItem *req,
 
     // only add the remainder if thre is one - that is, if we created the item.  And we will
     // only have created the item if there were new gates added.
-    if (EntityTypeHelper::Instance()->IsType(req->Entity->Type[0], "Item")) {
+    if (eTypeHelper->IsType(req->Entity->Type[0], "Item")) {
 	// there will only be remainders for items
 	if (remainder != 0.0) {
 	    assert(remainder >= 1.0); // I fear rounding error

@@ -49,22 +49,26 @@ The first solution planner (for items) is in and working - but not yet complete 
 TODO
 ====
 
+- [ ] Add achievement flag to Provides list for crafting recipes
+- [ ] add "Provides" nodes to OfficialData digesters
+- [ ] figure out how to and add a proper "make test" target
+- [ ] make the Bank output more readable
+- [ ] make the skipping statements more readable
+- [ ] Clarify the cost output by not showing quantities for things that don't combine - like Feats or "Items"
+
 - [x] Make the OfficialData a singleton and
   - [x] remove the OfficialData arg from the planners
 - [x] Work on Supply implementation
 - [x] Work in TrackedResources implementation
 - [x] Flesh out the Cost classes to enable rich/informative display of the cost of meeting a goal.
-- [ ] Add achievement flag to Provides list for crafting recipes
 - [x] Add handler and howto for consuming the quantiites resulting from crafting - IE, one "craft" of Hemp Twine makes about 20 items
 - [x] Skill Processor
 - [x] Add detailed Entity dumper to verify correct parsing
 - [x] Make the make file build in an obj dir and store the resulting binary in a bin dir
 - [x] Fix command line parsing to allow showing plan for "Fighter 8", etc
-- [ ] figure out how to and add a proper "make test" target
 - [x] undo the GetEntity dummy flag
 - [x] rename skills to feats - maybe remove skill from the list of types - per Cheney post in EntityTypeHelper.cc
-- [ ] add "Provides" nodes to OfficialData digesters
-- [ ] Add clear info to cost output when skipping OR nodes
+- [x] Add clear info to cost output when skipping OR nodes
 
 BUGS
 ====

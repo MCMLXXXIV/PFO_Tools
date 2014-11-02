@@ -12,7 +12,7 @@ using namespace std;
 class Supply {
  public:
     map<string, LineItem*> Items;
-    bool Has(EntityDefinition *entity);
+    // bool Has(EntityDefinition *entity);
     double Withdrawal(LineItem *item);
     void Deposit(LineItem *item);
     void Dump();
