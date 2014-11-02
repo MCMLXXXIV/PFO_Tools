@@ -54,8 +54,9 @@ TODO
 - [ ] figure out how to and add a proper "make test" target
 - [ ] make the Bank output more readable
 - [ ] make the skipping statements more readable
-- [ ] Clarify the cost output by not showing quantities for things that don't combine - like Feats or "Items"
+- [ ] Add verbosity flag to trim down the output
 
+- [x] Clarify the cost output by not showing quantities for things that don't combine - like Feats or "Items"
 - [x] Make the OfficialData a singleton and
   - [x] remove the OfficialData arg from the planners
 - [x] Work on Supply implementation
@@ -154,3 +155,4 @@ Here are some notes on GitHub
 Then modify and:
    1. git commit -m 'learning the ropes'
    2. git push
+

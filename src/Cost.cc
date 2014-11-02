@@ -60,7 +60,7 @@ void Cost::Add(LineItem *item, string msg, int level) {
 }
 
 void Cost::Dump() {
-    Dump("");
+    Dump(1);
     if (NonAggregateCosts.size() > 0) {
 	cout << endl << "Unaggregated costs:" << endl;
 	list<string>::iterator itr;
@@ -70,15 +70,36 @@ void Cost::Dump() {
     }
 }
 
-void Cost::Dump(string indent) {
+void Cost::Dump(int level) {
+    EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
+
+    string indent;
+    for (int x = 0; x < level; ++x) {
+	indent += "    ";
+    }
 
     map<short, Cost*>::iterator itr = SubNodes.begin();
     for (; itr != SubNodes.end(); ++itr) {
-	list<string> type = EntityTypeHelper::Instance()->GetType((*itr).second->Type);
-	cout << indent << type.back() << ": " << (*itr).second->Sum << endl; 
-	(*itr).second->Dump(indent + "    ");	
+	short *type = (*itr).second->Type;
+	list<string> typeList = eTypeHelper->GetType(type);
+	cout << indent << typeList.back() << ":";
+
+	// only show the summed quantity for Time and ExperiencePoints
+	if (level == 1 && (eTypeHelper->IsType(type[0],"Time") || eTypeHelper->IsType(type[0],"ExperiencePoint"))) {
+	    cout << " " << (*itr).second->Sum;
+	    if (eTypeHelper->IsType(type[0], "ExperiencePoint")) {
+		char buf[32];
+		snprintf(buf,31,"%.1f hours", ((*itr).second->Sum / 100)); // 100xp per hour
+		cout << " (" << buf << ")";
+	    }
+	}
+	cout << endl; 
+	(*itr).second->Dump(level+1);	
     }
+
     if (SubNodes.size() > 0) { return ; }
+
+    // only show the messages for the leaf nodes
     list<string>::iterator msgEntry = Notes.begin();
     for (; msgEntry != Notes.end(); ++msgEntry) {
 	cout << indent << (*msgEntry) << endl; 

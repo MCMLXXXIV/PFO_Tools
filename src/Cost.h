@@ -17,7 +17,7 @@ class Cost {
 
  private:
     void Add(LineItem *item, string msg, int level);
-    void Dump(string);
+    void Dump(int);
 
     list<string> NonAggregateCosts;
     map<short, Cost*> SubNodes;
