@@ -55,16 +55,16 @@ TODO
 - [x] Work in TrackedResources implementation
 - [x] Flesh out the Cost classes to enable rich/informative display of the cost of meeting a goal.
 - [ ] Add achievement flag to Provides list for crafting recipes
-- [ ] Add handler and howto for consuming the quantiites resulting from crafting - IE, one "craft" of Hemp Twine makes about 20 items
+- [x] Add handler and howto for consuming the quantiites resulting from crafting - IE, one "craft" of Hemp Twine makes about 20 items
 - [x] Skill Processor
 - [x] Add detailed Entity dumper to verify correct parsing
-- [ ] Make the make file build in an obj dir and store the resulting binary in a bin dir
+- [x] Make the make file build in an obj dir and store the resulting binary in a bin dir
 - [x] Fix command line parsing to allow showing plan for "Fighter 8", etc
 - [ ] figure out how to and add a proper "make test" target
 - [x] undo the GetEntity dummy flag
 - [x] rename skills to feats - maybe remove skill from the list of types - per Cheney post in EntityTypeHelper.cc
 - [ ] add "Provides" nodes to OfficialData digesters
-
+- [ ] Add clear info to cost output when skipping OR nodes
 
 BUGS
 ====
