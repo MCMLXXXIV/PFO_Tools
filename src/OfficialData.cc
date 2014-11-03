@@ -401,14 +401,31 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 
 	uint idx;
 	int rank;
+	bool gotAtLeastOneXpValue = false;
+	bool gotOneNoXpSet = false;
 	for (idx = slotNameColumn + 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
 
-	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ]
+	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ][ 13  ]
 	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
+
+	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][ 163 ][ 164 ][ 165 ][ 166 ][ 167 ][ 168 ]
+	    // [indx][name ][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
 	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
-	    if ((fields.size() - idx) < 5) {
+	    // say: idx = 163 and size = 168 - error as there is no element 168 which would be the fith field
+	    if ((fields.size() - idx) < 6) {
 		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
 		     << " rank " << rank << " has incomplete data - skipping" << endl;
+		continue;
+	    }
+
+	    if (fields[idx].size() > 0) {
+		assert(gotOneNoXpSet == false);
+		gotAtLeastOneXpValue = true;
+	    }
+	    if (gotAtLeastOneXpValue == true && fields[idx].size() < 1) {
+		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
+		     << " rank " << rank << " has incomplete data (no xp) - skipping" << endl;
+		gotOneNoXpSet = true;
 		continue;
 	    }
 
@@ -423,7 +440,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 		entity->Provides.push_back(*(new list<LineItem*>));
 	    }
 	    list<LineItem*> *reqs = &(entity->Requirements.back());
-	    // list<LineItem*> *pros = &(entity->Provides.back());
+	    list<LineItem*> *pros = &(entity->Provides.back());
 	    
 	    // add the exp requirement
 	    string entityName = "ExperiencePoint";
@@ -477,8 +494,8 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    // add the achievement requirements
 	    // Fighter is listed as both Achievement and Feat
 	    reqStr = fields[idx+3];
-	    // label = "Achievement";
-	    label = "Feat";
+	    label = "Achievement"; // eg, Shield Expert 4 - this is an achievement
+	    //label = "Feat"; // not sure why I had this as a Feat here
 	    errMsg = "";
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
@@ -501,6 +518,20 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 		    reqs->push_back(required);
 		}
 	    }
+
+	    // add the ability bonus "Provide" node
+	    reqStr = fields[idx+5];
+	    label = "AbilityScore";
+	    errMsg = "";
+	    if (reqStr.size() > 0) {
+		LineItem *provides = ParseRequirementString(reqStr, label, errMsg);
+		if (provides == NULL) {
+		    cout << "ERROR: failed to parse this " << label << " bonus string: [" << reqStr << "]; err:" << errMsg << endl;
+		} else {
+		    pros->push_back(provides);
+		}
+	    }
+	    
 	}
 	
 	// for (int idx = 0; idx < fields.size(); ++idx) { cout << fields[idx] << endl; }
@@ -587,15 +618,14 @@ bool OfficialData::ParseProgressionFile(string fn) {
 	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ]
 	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
 	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
-	    if ((fields.size() - idx) < 5) {
+	    if ((fields.size() - idx) < 6) {
 		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
 		     << " rank " << rank << " has incomplete data - skipping" << endl;
-		continue;
 	    }
 
 	    vector<string> colNames = {"Exp", "Cat", "Fea", "ach", "aRq", "aBo"};
-	    for (uint setIdx = 0; setIdx < 6; ++setIdx) {
-		cout << colNames[setIdx] << " " << rank << " " << fields[idx+setIdx] << endl;
+	    for (uint setIdx = 0; setIdx < 6 && idx+setIdx < fields.size(); ++setIdx) {
+		cout << colNames[setIdx] << " " << rank << " [" << fields[idx+setIdx] << "]" << endl;
 	    }
 	}
     }
@@ -699,7 +729,7 @@ LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityT
 	StoreEntity(fqn, entity);
     }
     
-    return new LineItem(entity, atoi(value.c_str()));
+    return new LineItem(entity, atof(value.c_str()));
 }
 
 

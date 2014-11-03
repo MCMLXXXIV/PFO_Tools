@@ -29,7 +29,7 @@ string LineItem::Describe(LineItem *parent) {
 		retVal += " or ";
 	    }
 	    char buf[64];
-	    snprintf(buf, 63, "%2.f of %-10s", (*itr)->Quantity, (*itr)->Entity->Name.c_str());
+	    snprintf(buf, 63, "%2.f of %-12s", (*itr)->Quantity, (*itr)->Entity->Name.c_str());
 	    retVal += buf;
 	}
     } else {
