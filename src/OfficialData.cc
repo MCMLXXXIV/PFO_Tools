@@ -20,6 +20,26 @@
 #include "LineItem.h"
 #include "Utils.h"
 
+
+// ---------------------------------------------------------------------------------------------- //
+//Stephen Cheney Jun 25, 2014, 09:53 AM
+//http://paizo.com/threads/rzs2rney?All-0-refining-recipes-granted-free-by-trainers#2
+//
+//Roughly a quarter of all recipes are set to "default"; you get them as soon as you get the
+//required rank. For refining, the +0 is always default, and the +1 to +3 are always learned. For
+//crafting, it's significantly more arbitrary, but should still make up roughly a quarter of the
+//available recipes. Skills with more recipes will get more default recipes. All crafting and
+//refining skills should have at least one default recipe that comes in at rank 0 so you can try
+//out the discipline before you buy. They should all be more-or-less evenly distributed across the
+//whole progression, but since the default recipes tend to use a lower rank requirement, they may
+//cluster toward the beginning of each tier. 
+//
+//http://paizo.com/threads/rzs2rney?All-0-refining-recipes-granted-free-by-trainers#4
+//For crafting, default = common. For refining, it's an arbitrary relationship between default and
+//common. This is to make sure there are enough commons at lower level (since if all default
+//refining was common, you'd never be able to get a common achievement past +0).
+// ---------------------------------------------------------------------------------------------- //
+
 using namespace std;
 
 OfficialData* OfficialData::m_pInstance = NULL;

@@ -55,6 +55,7 @@ TODO
 - [ ] make the Bank output more readable
 - [ ] make the skipping statements more readable
 - [ ] Add verbosity flag to trim down the output
+- [ ] Add the Provides nodes to the bank
 
 - [x] Clarify the cost output by not showing quantities for things that don't combine - like Feats or "Items"
 - [x] Make the OfficialData a singleton and
