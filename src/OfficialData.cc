@@ -399,6 +399,15 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    }
 	}
 
+
+	// notes on gotAtLeastOneXpValue and gotOneNoXpSet
+	// The latest official data from goblin works had a lot of trailing columns of empty data.
+	// I didn't want to add a bunch of bogus entries to the requirements lists and provides
+	// lists so I short circuited if the set had an empty field for XP.  And just to be sure
+	// I wasn't skipping something real, I also added an assertion that should assert if I
+	// find any good rows after a bad row - after all, maybe one day a zero length xp field
+	// may not be a good indicator that everything is blank.
+
 	uint idx;
 	int rank;
 	bool gotAtLeastOneXpValue = false;
