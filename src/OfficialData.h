@@ -3,7 +3,7 @@
 
 #include <map>
 #include <string>
-
+#include <strings.h>
 #include "EntityDefinition.h"
 
 class OfficialData;
@@ -53,7 +53,18 @@ class OfficialData {
 
     bool StoreEntity(string fullyQualifiedName, EntityDefinition *entity);
 
-    map< string, EntityDefinition* > Entities;
+    struct comp {
+	bool operator() (const string& lhs, const string& rhs) const {
+	    // http://stackoverflow.com/questions/11635/case-insensitive-string-comparison-in-c
+	    // stack overflow tells me that there isn't a good way to do case-insensitive 
+	    // comparisons except to use boost::iequals().  I haven't included boost yet
+	    // so I'm not going to do that yet.  If on windows you could use stricmp and on
+	    // POSIX systems you could use strcasecmp - and that's the route I'm taking here
+	    return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+	}
+    };
+
+    map< string, EntityDefinition*, comp> Entities;
     map< string, FileProcessor > FileProcessorMap;
 
     static OfficialData* m_pInstance;

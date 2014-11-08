@@ -40,6 +40,17 @@
 //refining was common, you'd never be able to get a common achievement past +0).
 // ---------------------------------------------------------------------------------------------- //
 
+// grep Artificer_1_C official_data/*
+// grep Artificer_1_c official_data/*
+// there is at least one case where an achievement name seems to be case insensitive:
+// Artificer_1_C vs Artificer_1_c
+//             ^                ^
+// Also, "personality" and "Personality" exist in the data.
+//
+// Therefore I've just added a case-insensitive comparator to the keeper/organizer of the
+// entities.  All calls to find an Entity by name use my map<string,Entity> so now, with the
+// case-insensitive comparator, personality and Personality will not be differentiated.
+
 using namespace std;
 
 OfficialData* OfficialData::m_pInstance = NULL;
