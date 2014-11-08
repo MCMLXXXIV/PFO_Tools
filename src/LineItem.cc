@@ -9,7 +9,16 @@ LineItem::LineItem(EntityDefinition* entity, double quantity) {
 
 
 void LineItem::Dump() {
-    printf("%5.2f of %s\n", Quantity, Entity->Name.c_str());
+    EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
+
+    char buf[16];
+    if (eTypeHelper->QuantityIsWholeNumber(Entity->Type[0])) {
+	snprintf(buf, 15, "%1.f", Quantity);
+    } else {
+	snprintf(buf, 15, "%.3f", Quantity);
+    }
+
+    printf("%6s of %s\n", buf, Entity->Name.c_str());
 }
 
 string LineItem::Describe(LineItem *parent) {

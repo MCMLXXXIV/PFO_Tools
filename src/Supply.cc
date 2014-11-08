@@ -79,6 +79,12 @@ void Supply::Deposit(LineItem *item) {
 void Supply::Dump() {
     map<string, LineItem*>::iterator itr = Items.begin();
     for (; itr != Items.end(); ++itr) {
+	if (EntityTypeHelper::Instance()->IsType((*itr).second->Entity->Type[0], "AbilityScore")) {
+	    if ((*itr).second->Quantity <= 10.0) {
+		continue;
+	    }
+	}
 	(*itr).second->Dump();
+
     }
 }
