@@ -244,9 +244,41 @@ void GetPlanForItems(string itemsArg) {
 	typeStringName.push_back("ExperiencePoint");
 	trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 	
+	typeStringName.clear();
+	typeStringName.push_back("Achievement");
+	trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+	typeStringName.clear();
+	typeStringName.push_back("AbilityScore");
+	trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
 	trackedResources.SetTracked(trackedTypes);
 	trackedResources.DumpTrackedResources();
 
+	// add default stats to bank
+	//
+	// N:AbilityScore.Constitution; P:0; C:0; ID:4.4
+	// N:AbilityScore.Dexterity; P:0; C:0; ID:4.3
+	// N:AbilityScore.Intelligence; P:0; C:0; ID:4.1
+	// N:AbilityScore.Personality; P:0; C:0; ID:4.2
+	// N:AbilityScore.Strength; P:0; C:0; ID:4.5
+	// N:AbilityScore.Wisdom; P:0; C:0; ID:4.6
+	set<string> abilityNames = {
+	    "Constitution",
+	    "Dexterity",
+	    "Intelligence",
+	    "Personality",
+	    "Strength",
+	    "Wisdom"
+	};
+
+	set<string>::iterator abilityItem;
+	for (abilityItem = abilityNames.begin(); abilityItem != abilityNames.end(); ++abilityItem) {
+	    entityName = "AbilityScore." + (*abilityItem);
+	    EntityDefinition *abiEntity = OfficialData::Instance()->GetEntity(entityName);
+	    assert(abiEntity != NULL);
+	    bank.Deposit(new LineItem(abiEntity, 10.0));
+	}
 	Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
 	
 	cout << endl;
