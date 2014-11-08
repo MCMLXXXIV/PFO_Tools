@@ -3,13 +3,10 @@
 #include "EntityDefinition.h"
 #include "LineItem.h"
 
-//bool Supply::Has(EntityDefinition *entity) {
-//    map<string, LineItem*>::iterator itr = Items.find(EntityTypeHelper::Instance()->ToIdString(entity->Type));
-//    return (itr != Items.end());
-//}
-
 double Supply::Withdrawal(LineItem *item) {
-    // rank zero of a feat is invariably free - I think it's default so it should be considered already in the bank.
+    // rank zero of a feat is invariably free - I think it's default so it should be considered
+    // already in the bank.  This is handled w/o any extra code because of the way we handle all
+    // requests for zero of something - just return zero which means "zero more are required"
 
     string itemId = EntityTypeHelper::Instance()->ToIdString(item->Entity->Type);
     map<string, LineItem*>::iterator itr = Items.find(itemId);
