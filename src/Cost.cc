@@ -47,12 +47,19 @@ void Cost::Add(LineItem *item, string msg, int level) {
     childNode->Notes.push_back(msg);
 
     if (EntityTypeHelper::Instance()->IsRanked((entity->Type)[0])) {
+	// achievements and feats
 	if (childNode->Sum < item->Quantity) {
 	    childNode->Sum = item->Quantity;
 	}
     } else if (EntityTypeHelper::Instance()->IsUniversal((entity->Type)[0])) {
+	// AbilityScore and AchievementPoint
+	// hmmm - I can't figure out why I handle these differently than feats.  Why would I allow
+	// the sum to go down here but not above, for feats and achievements?  I think this is a
+	// bug but I am not thinking clearly enough this morning to commit to changing anything -
+	// I feel like I must be missing something.
 	childNode->Sum = item->Quantity;
     } else {
+	// Item, XP, Recipe, Time
 	childNode->Sum += item->Quantity;
     }
 

@@ -63,6 +63,11 @@ void Supply::Deposit(LineItem *item) {
 	    bankItem->Quantity = item->Quantity;
 	}
 	return;
+    } else if (EntityTypeHelper::Instance()->IsUniversal((bankItem->Entity->Type)[0])) {
+	if (item->Quantity > bankItem->Quantity) {
+	    bankItem->Quantity = item->Quantity;
+	}
+	return;
     }
 
     // items and achievement points here - all others are Ranked or
