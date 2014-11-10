@@ -3,24 +3,29 @@
 #
 
 CXXFLAGS=-Wall -g -std=c++0x
+#LIBS += -Wl -lmicrohttpd.a
+
+# is this working?  The resulting binary seems to be the same size...
+LIBS += -Wl,-Bstatic -lmicrohttpd -Wl,-Bdynamic -lpthread -lrt
 
 ODIR := obj
 SDIR := src
 BDIR := bin
 
 _OBJS = LineItem.o OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o EntityTypeHelper.o EntityDefinition.o Gate.o HierarchicalId.o Utils.o CommandLineOptions.o main.o
+
 OBJS=$(addprefix $(ODIR)/,$(_OBJS))
 
 $(ODIR)/%.o : $(SDIR)/%.cc
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 $(BDIR)/arch_test: $(OBJS) | $(BDIR)
-	$(CXX) -o $@ $^ $(CXXFLAGS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
 
 $(OBJS): | $(ODIR)
 
 
-obj/LineItem.o :           $(SDIR)/LineItem.h
+$(ODIR)/LineItem.o :           $(patsubst %,$(SDIR)/%,LineItem.h)
 $(ODIR)/OfficialData.o :       $(patsubst %,$(SDIR)/%,OfficialData.h EntityDefinition.h LineItem.h Utils.h)
 $(ODIR)/Supply.o :             $(patsubst %,$(SDIR)/%,Supply.h)
 $(ODIR)/TrackedResources.o :   $(patsubst %,$(SDIR)/%,TrackedResources.h)

@@ -56,6 +56,7 @@ TODO
 - [ ] make the skipping statements more readable
 - [ ] Add verbosity flag to trim down the output
 - [ ] Add the Provides nodes to the bank
+- [ ] Begin to add http framework
 
 - [x] Clarify the cost output by not showing quantities for things that don't combine - like Feats or "Items"
 - [x] Make the OfficialData a singleton and
@@ -83,6 +84,36 @@ BUGS
 Nice to have:
 I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but
 for now I'll just write stuff to stdout.
+
+Notes on libmicrohttpd
+======================
+
+Quick search led me here:
+http://www.gnu.org/software/libmicrohttpd/
+
+I picked up the latest version from a mirror:
+http://mirrors.syringanetworks.net/gnu/libmicrohttpd/libmicrohttpd-0.9.38.tar.gz
+
+It configured and compiled just fine.  I was hesitant to "sudo make install" - I want folks to be able to use
+this tool w/o a bunch of fiddly bits.
+
+The only version of this available via the default package sources was version 5 (sudo apt-get install
+libmicrohttpd5) *and* I already had it installed apparently (the apt-get command did nothing) but after
+doing that I still couldn't find the header file (ie, locate microhttd returned nothing).
+
+apt-get also had a libmicrohttpd-dev so I tried that (apt-get install libmicrohttpd-dev) and while that let
+me find the header file (microhttpd.h) the compiled failed w/ a bunch of errors like:
+
+   /usr/include/microhttpd.h:497:3: error: ‘intptr_t’ does not name a type
+   /usr/include/microhttpd.h:830:5: error: ‘uint64_t’ has not been declared
+   /usr/include/microhttpd.h:868:46: error: ‘uint64_t’ has not been declared
+   /usr/include/microhttpd.h:893:55: error: ‘va_list’ has not been declared
+
+So I uninstalled that (apt-get remove libmicrohttpd-dev) and committed myself to just running sudo make install
+on the source I just downloaded.  Wich me luck.
+
+Yay!  It almost compiled.  Now I just need to add the lib to the makefile.
+
 
 Notes on libxls
 ===============

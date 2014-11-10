@@ -1,3 +1,9 @@
+#include <string.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <microhttpd.h>
+
 #include <cassert>
 
 #include <iostream>
@@ -21,9 +27,17 @@ void DumpItemRequirements(string items_arg);
 void GetPlanForItems(string items_arg);
 void SearchForItemsThatRequire(string items_arg);
 
+void MicroHttpdTest();
+
 using namespace std;
 
 int main(int argc, char **argv) {
+
+    MicroHttpdTest();
+    cout << "test over" << endl;
+
+    return 0;
+
 
     // TestUtilsSplit(); return 0;
     // TestRankSpliter() ; return 0;
@@ -380,3 +394,38 @@ void TestRankSpliter() {
 	printf("%15s %5s [%s] [%d]\n", (*itr).c_str(), (ret ? "TRUE" : "FALSE"), (ret ? namePart : "n/a"), rankInName);
     }
 } 
+
+
+int AnswerToConnection(void *cls, struct MHD_Connection *connection,
+		       const char *url,
+		       const char *method,
+		       const char *version,
+		       const char *upload_data,
+		       size_t *upload_data_size,
+		       void **con_cls)
+{
+    const char *page = "<html><body>Hello Test</body></html>";
+    
+    struct MHD_Response *response;
+    int ret;
+    
+    response = MHD_create_response_from_buffer(strlen(page), (void*)page, MHD_RESPMEM_PERSISTENT);
+    
+    ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+    MHD_destroy_response(response);
+    return ret;
+}
+
+void MicroHttpdTest() {
+ 
+    struct MHD_Daemon *daemon;
+    daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, 8888, NULL, NULL, &AnswerToConnection, NULL, MHD_OPTION_END);
+    if (NULL == daemon) {
+	printf("failed...\n");
+    }
+    getchar();
+    
+    MHD_stop_daemon(daemon);
+    return;
+
+}
