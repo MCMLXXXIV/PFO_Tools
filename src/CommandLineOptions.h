@@ -19,6 +19,8 @@ class CommandLineOptionsEncapsulation {
     bool SearchForItemsThatRequire;
     bool ParseProgressionFile;
 
+    int Verbosity;
+
     string ErrMsg;
 
     string Items;
