@@ -387,8 +387,4 @@ void TestRankSpliter() {
     }
 } 
 
-int PrintOutKey(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
-    printf("\t%s: %s\n", key, value);
-    return MHD_YES;
-}
 
