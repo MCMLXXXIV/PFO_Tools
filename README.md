@@ -34,8 +34,6 @@ The steps will be
 Status
 ======
 
-There is a very simple makefile in the src dir. 
-
 The resulting binary, arch_test, opens the dir with the csv files (above) and goes through all the files.
 If the file name has a handler defined, it will read the file and store the results in
 an OfficialData object.
@@ -44,6 +42,12 @@ As of this checkin, we handle a lot of the data files but I think there may stil
 need to add a more detailed dumper of the entities to make sure of correctness.
 
 The first solution planner (for items) is in and working - but not yet complete (see TODOs).
+
+I wanted to demo this as a webservice but due to Cross-origin resource sharing (CORS) restrictions, I don't
+think that will work so well.  So I will expand my use of the microhttpd to also serve some demo functionality.
+
+Ultimately, this seems like a module for a webserver - but the only gotcha is that I don't want the webserver
+to have to read, parse all the data files for every request - it should just keep the data in memory.
 
 
 TODO

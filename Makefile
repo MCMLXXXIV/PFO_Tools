@@ -12,14 +12,19 @@ ODIR := obj
 SDIR := src
 BDIR := bin
 
-_OBJS = LineItem.o OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o EntityTypeHelper.o EntityDefinition.o Gate.o HierarchicalId.o Utils.o CommandLineOptions.o main.o
+_OBJS = LineItem.o OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o EntityTypeHelper.o EntityDefinition.o Gate.o HierarchicalId.o Utils.o CommandLineOptions.o
 
 OBJS=$(addprefix $(ODIR)/,$(_OBJS))
+
+all : $(BDIR)/arch_test $(BDIR)/webService
 
 $(ODIR)/%.o : $(SDIR)/%.cc
 	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
-$(BDIR)/arch_test: $(OBJS) | $(BDIR)
+$(BDIR)/arch_test: $(OBJS) $(ODIR)/main.o | $(BDIR)
+	$(CXX) -o $@ $^ $(CXXFLAGS)
+
+$(BDIR)/webService: $(OBJS) $(ODIR)/WebService.o | $(BDIR)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
 
 $(OBJS): | $(ODIR)
@@ -39,6 +44,7 @@ $(ODIR)/HierarchicalId.o :     $(patsubst %,$(SDIR)/%,HierarchicalId.h)
 $(ODIR)/Utils.o :              $(patsubst %,$(SDIR)/%,Utils.h)
 $(ODIR)/CommandLineOptions.o : $(patsubst %,$(SDIR)/%,CommandLineOptions.h)
 $(ODIR)/main.o :               $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h)
+$(ODIR)/WebService.o :         $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h)
 
 $(ODIR):
 	mkdir $(ODIR)
