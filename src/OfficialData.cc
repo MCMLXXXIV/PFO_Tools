@@ -19,7 +19,7 @@
 #include "EntityTypeHelper.h"
 #include "LineItem.h"
 #include "Utils.h"
-
+#include "Log.h"
 
 // ---------------------------------------------------------------------------------------------- //
 //Stephen Cheney Jun 25, 2014, 09:53 AM
@@ -100,6 +100,8 @@ bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    ret
 
 
 void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
+    Logger *log = Logger::Instance();
+
     bool foundOne = false;
     set<EntityDefinition*> searched;
     map< string, EntityDefinition* >::iterator tlItr;
@@ -107,16 +109,17 @@ void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
 	string key = (*tlItr).first;
 	EntityDefinition* entity = (*tlItr).second;
 	if (entity->HasRequirement(targetEntity, searched)) {
-	    cout << key << " / " << entity->Name << " has this as a requirement" << endl;
+	    log->Log(Logger::Level::Note, "", "%s / %s has this as a requirement\n", key.c_str(), entity->Name.c_str());
 	    foundOne = true;
 	}
     }
     if (foundOne == false) {
-	cout << "didn't find this as a requirement - searched " << searched.size() << " entities" << endl;
+	log->Log(Logger::Level::Note, "", "didn't find this as a requirement - searched %lu entities\n", searched.size());
     }
 }
 
 bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn) {
+    Logger *log = Logger::Instance();
     
     ifstream fin(fn.c_str());
     if (!fin.is_open()) {
@@ -139,7 +142,7 @@ bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn) {
 	EntityDefinition *entity = GetEntity("Item." + itemName);
 	if (entity == NULL) {
 	    bool foundEntity = (entity != NULL);
-	    cout << "Can't find " << itemName << endl;
+	    log->Log(Logger::Level::Error, "", "Can't find %s\n", itemName.c_str());
 	    assert(foundEntity == true);
 	}
 
@@ -148,12 +151,13 @@ bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn) {
 	}
     }
     fin.close();
-    cout << "parsed " << fn << endl;
+    log->Log(Logger::Level::Note, "OfficialData", "parsed %s\n", fn.c_str()); 
     return true;
 }
 
 bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
     EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
+    Logger *log = Logger::Instance();
 
     ifstream fin(fn.c_str());
     if (!fin.is_open()) {
@@ -222,7 +226,8 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
 	if (reqStr.size() > 0) {
 	    LineItem *required = ParseRequirementString(reqStr, label, errMsg);
 	    if (required == NULL) {
-		cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
+		log->Log(Logger::Level::Warn, "OfficialData", "failed to parse this %s requirement string: [%s]; err: %s\n", label.c_str(), reqStr.c_str(), errMsg.c_str());
+		// cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
 	    } else {
 		reqs->push_back(required);
 	    }
@@ -230,8 +235,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
     }
     fin.close();
 
-    cout << "parsed " << fn << endl;
-
+    log->Log(Logger::Level::Note, "OfficialData", "parsed %s\n", fn.c_str());
     return true;
 }
 

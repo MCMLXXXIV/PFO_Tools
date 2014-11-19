@@ -19,6 +19,7 @@
 #include "Plan.h"
 #include "Utils.h"
 #include "CommandLineOptions.h"
+#include "Log.h"
 
 void TestUtilsSplit();
 void TestSplitKeyValueOnChar();
@@ -44,6 +45,12 @@ int main(int argc, char **argv) {
 	opts.ShowHelp();
 	return 0;
     }
+
+    Logger::Instance()->SetLoggingLevel(static_cast<Logger::Level>(opts.VerbosityLevel));
+    if (Logger::Instance()->SetTagsFromCsv(opts.LoggingTags) == false) {
+	cerr << "Illegal logging tags - quiting..." << endl;
+	return 1;
+    }    
 
     if (opts.ParseProgressionFile) {
 	OfficialData::ParseProgressionFile(opts.Items);

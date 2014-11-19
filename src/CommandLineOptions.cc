@@ -15,13 +15,14 @@ CommandLineOptionsEncapsulation::CommandLineOptionsEncapsulation() {
     ParseError = false;
     SearchForItemsThatRequire = false;
     ParseProgressionFile = false;
-    Verbosity = 0;
+    VerbosityLevel = 99;
+    LoggingTags = "";
 }
 
 bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
-    int flags, opt;
+    int opt;
 
-    while ((opt = getopt(argc, argv, "hdr:p:P:R:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hdr:p:P:R:t:v:")) != -1) {
 	switch (opt) {
 	case 'h':
 	    ShowHelpOpt = true;
@@ -45,8 +46,11 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
 	    SearchForItemsThatRequire = true;
 	    Items = optarg;
 	    break;
+	case 't':
+	    LoggingTags = optarg;
+	    break;
 	case 'v':
-	    Verbosity = atoi(optarg);
+	    VerbosityLevel = atoi(optarg);
 	    break;
 	default:
 	    ParseError = true;
@@ -70,13 +74,14 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
 }
 
 void CommandLineOptionsEncapsulation::ShowHelp() {
-    cout << "arch_test [-h] [-d] [[-r] item[,item2]] [[-p] item[,item2]] [-P file] [-R item] [-v level]" << endl;
+    cout << "arch_test [-h] [-d] [[-r] item[,item2]] [[-p] item[,item2]] [-P file] [-R item] [-t tag1[,tag2]] [-v level]" << endl;
     cout << "   [-h]               show this mesage" << endl
 	 << "   [-d]               dump all parsed entities" << endl
 	 << "   [-r item[,item2]]  dump the known requirements for the item(s)" << endl
 	 << "   [-p item[,item2]]  show a plan to create the item(s)" << endl
 	 << "   [-P file]          parse and dump a progression file" << endl
 	 << "   [-R item]          debug: search all known enities for those that have item as a requirement" << endl
+	 << "   [-t tag1[,tag2]]   sets logging tags; EG: knownParseErrors" << endl
 	 << "   [-v level]         set the verbosity level to 'level'" << endl
 	 << endl;
 }
