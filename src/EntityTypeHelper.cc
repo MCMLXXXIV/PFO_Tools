@@ -1,4 +1,5 @@
 #include "EntityTypeHelper.h"
+#include "Log.h"
 
 #include <iostream>
 #include <climits>
@@ -80,7 +81,9 @@ short* EntityTypeHelper::GetType(list<string> names) {
 		if (RankedFlagByLevelOneTypeId.size() == 0) { RankedFlagByLevelOneTypeId.push_back(false); }
 		if (WholeNumberFlagByLevelOneTypeId.size() == 0) { WholeNumberFlagByLevelOneTypeId.push_back(false); }
 		if (TopLevelTypes.size() == 0) { TopLevelTypes.push_back(""); }
-		cout << "name: " << name << "; nextId: " << nextId << "; vectorSize: " << UniversalFlagByLevelOneTypeId.size() << endl;
+		Logger::Instance()->Log(Logger::Level::Verbose, "Types",
+					"Recording new type; name:%s; nextId:%d; vectorSize:%d\n",
+					name.c_str(), nextId, UniversalFlagByLevelOneTypeId.size());
 		assert(UniversalFlagByLevelOneTypeId.size() == nextId);
 		UniversalFlagByLevelOneTypeId.push_back(UniversalEntityTypes.count(name) > 0);
 		RankedFlagByLevelOneTypeId.push_back(RankedEntityTypes.count(name) > 0);

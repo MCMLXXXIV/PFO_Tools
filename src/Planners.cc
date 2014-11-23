@@ -10,6 +10,7 @@
 #include "TrackedResources.h"
 #include "Cost.h"
 #include "Plan.h"
+#include "Log.h"
 
 using namespace std;
 
@@ -54,14 +55,18 @@ Gate* Planners::GetPlanStep(LineItem *req,
     memset(indent, ' ', depth*4);
 
     EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
+    Logger *log = Logger::Instance();
 
-    char buf[16];
+    char quantityString[16];
+    memset(quantityString, '\0', 16);
     if (eTypeHelper->QuantityIsWholeNumber(req->Entity->Type[0])) {
-	snprintf(buf, 15, "%1.f", req->Quantity);
+	snprintf(quantityString, 15, "%1.f", req->Quantity);
     } else {
-	snprintf(buf, 15, "%.3f", req->Quantity);
+	snprintf(quantityString, 15, "%.3f", req->Quantity);
     }
-    cout << indent << "Planners::GetPlanStep(" << buf << " of " << req->Entity->Name << "); depth: " << depth << endl;
+    log->Log(Logger::Level::Verbose, "Planners",
+	     "%sPlanners::GetPlanStep(%s of %s); depth: %d\n",
+	     indent, quantityString, req->Entity->Name.c_str(), depth);
 
     Gate *gate = new Gate();
     
@@ -74,7 +79,9 @@ Gate* Planners::GetPlanStep(LineItem *req,
     if (stillNeeded <= 0.0) {
 	bool isLeaf = true;
 	bool bankFilled = true;
-	cout << indent << "BANK: " << req->Quantity << " of " << req->Entity->Name << " satisfied from bank" << endl;
+	log->Log(Logger::Level::Verbose, "Planners",
+		 "%sBank: %s of %s satisfied from bank\n",
+		 indent, quantityString, req->Entity->Name.c_str());
 	return new Gate(isLeaf, bankFilled, req);
     }
     needed = stillNeeded;
@@ -92,22 +99,29 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	unsigned rank = unsigned(req->Quantity + 0.1);
 	// TODO - until I finish the parsers, some entities will have incomplete data
 	if (req->Entity->Requirements.size() < 1) {
-	    cout << indent << "WARNING: this ranked Entity has no processed requirements; name: " << req->Entity->Name << endl;
+	    log->Log(Logger::Level::Note, "Planners",
+		     "%sthis ranked Entity has no listed Requirements; name: %s\n",
+		     indent, req->Entity->Name.c_str());
 	    reqs = new list< LineItem* >();
 	} else if (req->Entity->Requirements.size() < rank) {
-	    cout << indent << "WARNING: this ranked Entity has incomplete requirements; name: " << req->Entity->Name << endl;
+	    log->Log(Logger::Level::Warn, "Planners",
+		     "%sthis ranked Entity only has requirements for %d ranks but the requirement is for rank %d; name: %s\n",
+		     indent, req->Entity->Requirements.size(), rank, req->Entity->Name.c_str());
 	    reqs = new list< LineItem* >();
 	} else {
 	    reqs = &( req->Entity->Requirements[rank] );
-	    cout << indent << "Have " << reqs->size() << " reqs for " << req->Entity->Name 
-		 << " rank " << rank << " of " << (req->Entity->Requirements.size()-1) << endl;
+	    log->Log(Logger::Level::Verbose, "Planners",
+		     "%sProcessing %d requirements for %s rank %d of %d\n",
+		     indent, reqs->size(), req->Entity->Name.c_str(), rank, (req->Entity->Requirements.size()-1));
 	}	
     } else {
 	if (req->Entity->Requirements.size() < 1) {
 	    // for things like "Time" there may be no sub reqs at all
 	    // in this case, make an empty req list so that we can continue normally
 	    reqs = new list< LineItem* >();
-	    cout << indent << "*** no requirements for " << req->Entity->Name << endl;
+	    log->Log(Logger::Level::Verbose, "Planners",
+		     "%s*** no requirements for %s\n",
+		     indent, req->Entity->Name.c_str());
 	} else {
 	    reqs = &( req->Entity->Requirements[0] );
 	}
@@ -126,12 +140,16 @@ Gate* Planners::GetPlanStep(LineItem *req,
     for (; reqEntry != reqs->end(); reqEntry++) {
 	LineItem *subReq = *reqEntry;
 	if (!trackedResources.IsTracked(subReq->Entity->Type)) {
-	    cout << indent << "skipping untracked requirement: " << subReq->Entity->Name << endl;
+	    log->Log(Logger::Level::Note, "Planners",
+		     "%sskipping untracked requirement: %s\n",
+		     indent, subReq->Entity->Name.c_str());
 	    continue;
 	}
 	if (eTypeHelper->IsType(subReq->Entity->Type[0], "LogicOr")) {
 	    gate->SetIsOrGate(true);
-	    cout << indent << req->Entity->Name << " skipping OR gate" << endl;
+	    log->Log(Logger::Level::Note, "Planners",
+		     "%s%s skipping OR gate\n",
+		     indent, req->Entity->Name.c_str());
 	    cost.Add(subReq->Describe(req));
 	    continue;
 	}
@@ -156,7 +174,9 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	if (parentLineItem != NULL) {
 	    parentEntity = " for " + parentLineItem->Entity->Name;
 	}
-	cout << indent << "BANK: deposit " << req->Quantity << " of " << req->Entity->Name << parentEntity << endl; 
+	log->Log(Logger::Level::Note, "Planners",
+		 "%sBANK: deposit %s of %s%s\n",
+		 indent, quantityString, req->Entity->Name.c_str(), parentEntity.c_str());
 	bank.Deposit(req);
     } else if (eTypeHelper->IsType(req->Entity->Type[0], "Item") && productConsumed == false) {
 	// for example, the item goal(s)
@@ -197,7 +217,9 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}
     }
 
-    cout << indent << "handled " << req->Quantity << " of " << req->Entity->Name << " with " << newGates << " new gates" << endl;
+    log->Log(Logger::Level::Note, "Planners",
+	     "%shandled %s of %s with %d new gates\n",
+	     indent, quantityString, req->Entity->Name.c_str(), newGates);
     return gate;
 
 }

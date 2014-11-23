@@ -100,8 +100,6 @@ bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    ret
 
 
 void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
-    Logger *log = Logger::Instance();
-
     bool foundOne = false;
     set<EntityDefinition*> searched;
     map< string, EntityDefinition* >::iterator tlItr;
@@ -109,12 +107,13 @@ void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
 	string key = (*tlItr).first;
 	EntityDefinition* entity = (*tlItr).second;
 	if (entity->HasRequirement(targetEntity, searched)) {
-	    log->Log(Logger::Level::Note, "", "%s / %s has this as a requirement\n", key.c_str(), entity->Name.c_str());
+	    // this one is just a cout because it's the requsted output - not logging
+	    cout << key << " / " << entity->Name << " has this as a requirement" << endl;
 	    foundOne = true;
 	}
     }
     if (foundOne == false) {
-	log->Log(Logger::Level::Note, "", "didn't find this as a requirement - searched %lu entities\n", searched.size());
+	cout << "didn't find this as a requirement - searched " << searched.size() << " entities" << endl;
     }
 }
 
@@ -282,7 +281,7 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
 
     dp = opendir(directoryName.c_str());
     if (dp == NULL) {
-	cout << "ERROR(" << errno << ") opening " << directoryName << endl;
+	Logger::Instance()->Log(Logger::Level::Error, "", "Failed to open %s: %s (%d)\n", directoryName.c_str(), strerror(errno), errno);
 	return errno;
     }
 
@@ -296,7 +295,7 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
 	if (stat( filepath.c_str(), &filestat)) continue;
 	if (S_ISDIR( filestat.st_mode)) continue;
 
-	// I'm delaying this because I want to verify that this crowd forged data dump
+	// DELAY: I'm delaying this because I want to verify that this crowd forged data dump
 	// at least has the right item names - and I can't do that until I've parsed all
 	// the items.
 	if (fname == "RecipeYields_Crowdforged.csv") {
@@ -307,22 +306,22 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
 	if (FileProcessorMap[fname]) {
 	    (this->*FileProcessorMap[fname])(filepath);
 	} else {
-	    cout << "no handler for " << fname << endl;
+	    Logger::Instance()->Log(Logger::Level::Warn, "OfficialData", "no handler for %s\n", fname.c_str());
 	}	
     }
     closedir(dp);
 
+    // DELAY note in loop above
     map<string,string>::iterator itr;
     for (itr = delayed.begin(); itr != delayed.end(); ++itr) {
 	if (FileProcessorMap[(*itr).first]) {
 	    (this->*FileProcessorMap[(*itr).first])((*itr).second);
 	} else {
-	    cout << "no handler for " << (*itr).first << endl;
+	    Logger::Instance()->Log(Logger::Level::Warn, "OfficialData", "no handler for %s\n", (*itr).first.c_str());
 	}	
     }	
 
-    cout << "Done processing spreadsheet data; have " << Entities.size() << " entities" << endl;
-
+    Logger::Instance()->Log(Logger::Level::Warn, "OfficialData", "Done processing spreadsheet data; have %d entities\n", Entities.size());
     return 0;
 }
 
@@ -336,10 +335,11 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
     // cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
 
     EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
+    Logger *log = Logger::Instance();
 
     ifstream fin(fn.c_str());
     if (!fin.is_open()) {
-	cerr << "failed to read file " << fn << " errno: " << errno << endl;
+	log->Log(Logger::Level::Error, "", "Failed to read file %s: %s (%d)\n", fn.c_str(), strerror(errno), errno);
 	return false;
     }
     string line;
@@ -351,13 +351,13 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
 
 	if (fields.size() < 1) {
-	    cout << "WARNING: " << fn << ":" << line_num << " is empty.  Skipping..." << endl;
+	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d is empty.  Skipping...\n", fn.c_str(), line_num);
 	    assert(line_num > 1);
 	    continue;
 	}
 	
 	if (fields[0].size() == 0) {
-	    cout << "WARNING: " << fn << ":" << line_num << " has " << fields.size() << " columns but an empty name.  Skipping..." << endl;
+	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d has %d columns but an empty name.  Skipping...\n", fn.c_str(), line_num, fields.size());
 	    assert(line_num > 1);
 	    continue;
 	}
@@ -405,7 +405,8 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	if (entity != NULL) {
 	    // printf("%c %2d: %22s -> %d\n", '.', line_num, fields[0].c_str(), (int)fields.size());
 	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
-		cout << "KNOWN DATA ERROR: Utility Advancement.csv has two rows for Channel Smite" << endl;
+		log->Log(Logger::Level::Note, "knownParseErrors", "%s:%d Utility Advancement.csv has two rows for Channel Smite...\n", fn.c_str(), line_num);
+	    
 	    } else {
 		assert(entity->ProcessedSpreadsheetDefinition == false);
 	    }
@@ -426,7 +427,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	// hack here to keep track of known errors in the data
 	if (entity->Requirements.size() != 0) {
 	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
-		cout << "KNOWN DATA ERROR: Utility Advancement.csv has two rows for Channel Smite" << endl;
+		log->Log(Logger::Level::Note, "knownParseErrors", "%s:%d Utility Advancement.csv has two rows for Channel Smite...\n", fn.c_str(), line_num);
 	    } else {
 		// feats are ranked - always ranked - but we won't add the ranks of requirements or
 		// provides until we process them here
@@ -457,8 +458,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
 	    // say: idx = 163 and size = 168 - error as there is no element 168 which would be the fith field
 	    if ((fields.size() - idx) < 6) {
-		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
-		     << " rank " << rank << " has incomplete data - skipping" << endl;
+		log->Log(Logger::Level::Warn, "OfficialData",
+					"%s:%d  %s rank %d has incomplete data - skipping...\n",
+					fn.c_str(), line_num, featName.c_str(), rank);
 		continue;
 	    }
 
@@ -467,8 +469,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 		gotAtLeastOneXpValue = true;
 	    }
 	    if (gotAtLeastOneXpValue == true && fields[idx].size() < 1) {
-		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
-		     << " rank " << rank << " has incomplete data (no xp) - skipping" << endl;
+		log->Log(Logger::Level::Warn, "OfficialData",
+					"%s:%d  %s rank %d has incomplete data (no xp) - skipping...\n",
+					fn.c_str(), line_num, featName.c_str(), rank);
 		gotOneNoXpSet = true;
 		continue;
 	    }
@@ -515,7 +518,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
 		if (required == NULL) {
-		    cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
 		} else {
 		    reqs->push_back(required);
 		}
@@ -528,7 +533,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
 		if (required == NULL) {
-		    cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
 		} else {
 		    reqs->push_back(required);
 		}
@@ -544,7 +551,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
 		if (required == NULL) {
-		    cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
 		} else {
 		    reqs->push_back(required);
 		}
@@ -557,7 +566,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    if (reqStr.size() > 0) {
 		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
 		if (required == NULL) {
-		    cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
 		} else {
 		    reqs->push_back(required);
 		}
@@ -570,7 +581,9 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
 	    if (reqStr.size() > 0) {
 		LineItem *provides = ParseRequirementString(reqStr, label, errMsg);
 		if (provides == NULL) {
-		    cout << "ERROR: failed to parse this " << label << " bonus string: [" << reqStr << "]; err:" << errMsg << endl;
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s bonus string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
 		} else {
 		    pros->push_back(provides);
 		}
@@ -595,6 +608,8 @@ bool OfficialData::ParseProgressionFile(string fn) {
 
     // cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
 
+    Logger *log = Logger::Instance();
+
     ifstream fin(fn.c_str());
     if (!fin.is_open()) {
 	cerr << "failed to read file " << fn << " errno: " << errno << endl;
@@ -609,13 +624,13 @@ bool OfficialData::ParseProgressionFile(string fn) {
 	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
 
 	if (fields.size() < 1) {
-	    cout << "WARNING: " << fn << ":" << line_num << " is empty.  Skipping..." << endl;
+	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d is empty.  Skipping...\n", fn.c_str(), line_num);
 	    assert(line_num > 1);
 	    continue;
 	}
 	
 	if (fields[0].size() == 0) {
-	    cout << "WARNING: " << fn << ":" << line_num << " has " << fields.size() << " columns but an empty name.  Skipping..." << endl;
+	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d has %d columns but an empty name.  Skipping...\n", fn.c_str(), line_num, fields.size());
 	    assert(line_num > 1);
 	    continue;
 	}
@@ -649,11 +664,11 @@ bool OfficialData::ParseProgressionFile(string fn) {
 		    break;
 		}
 	    }
-	    cout << "slotNameColumn=" << slotNameColumn << endl;
+	    log->Log(Logger::Level::Verbose, "OfficialData", "slotNameColumn=%u\n", slotNameColumn);
 	}
 
 	string featName = fields[slotNameColumn];
-	cout << "FeatName:[" << featName << "]" << endl; 
+	log->Log(Logger::Level::Verbose, "OfficialData", "FeatName:[%s]\n", featName.c_str());
 
 	uint idx;
 	int rank;
@@ -663,8 +678,9 @@ bool OfficialData::ParseProgressionFile(string fn) {
 	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
 	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
 	    if ((fields.size() - idx) < 6) {
-		cout << "ERROR: in " << fn << ", line " << line_num << ", " << featName 
-		     << " rank " << rank << " has incomplete data - skipping" << endl;
+		log->Log(Logger::Level::Warn, "OfficialData",
+					"%s:%d  %s rank %d has incomplete data - skipping...\n",
+					fn.c_str(), line_num, featName.c_str(), rank);
 	    }
 
 	    vector<string> colNames = {"Exp", "Cat", "Fea", "ach", "aRq", "aBo"};
@@ -800,6 +816,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
     // cout << "+++ RUNNING: OfficialData::ParseAndStoreRecipeFile(" << fn << ")" << endl;
 
     EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
+    Logger *log = Logger::Instance();
 
     ifstream fin(fn.c_str());
     if (!fin.is_open()) {
@@ -845,11 +862,13 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	    fields.push_back(val);
 	}
 	if (fields.size() != 16) {
-	    cout << "WARNING: bad line in " << fn << ":" << line_num << "; doesn't have 16 fields - has " << fields.size() << ": " << line << endl;
+	    log->Log(Logger::Level::Warn, "OfficialData",
+		     "%s:%d doesn't have 16 fields - has %d : %s\n",
+		     fn.c_str(), line_num, fields.size(), line.c_str());
 	    continue;
 	}
 	if (fields[1].size() < 1) {
-	    cout << "WARNING: bad line in " << fn << ":" << line_num << "; empty name; " << line << endl;
+	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d has %d columns but an empty name : %s\n", fn.c_str(), line_num, fields.size(), line.c_str());
 	    continue;
 	}
 
