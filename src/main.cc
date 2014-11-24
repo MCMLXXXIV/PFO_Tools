@@ -266,7 +266,7 @@ void GetPlanForItems(string itemsArg) {
 	trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
 	trackedResources.SetTracked(trackedTypes);
-	trackedResources.DumpTrackedResources();
+	// trackedResources.DumpTrackedResources();
 
 	// add default stats to bank
 	//

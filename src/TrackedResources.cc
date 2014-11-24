@@ -1,5 +1,6 @@
 #include "TrackedResources.h"
 #include "EntityTypeHelper.h"
+#include "Log.h"
 
 #include <iostream>
 
@@ -7,6 +8,8 @@ using namespace std;
 
 void TrackedResources::SetTracked(list<short*> tracked) {
     EntityTypeHelper *h = EntityTypeHelper::Instance();
+    Logger *log = Logger::Instance();
+
     int maxTopLevelEntityId = h->GetMaxEntityId(NULL);
     set<short> trackedTopLevelTypes;
     list<short*>::iterator itr;
@@ -24,6 +27,7 @@ void TrackedResources::SetTracked(list<short*> tracked) {
 
     for (itr = tracked.begin(); itr != tracked.end(); ++itr) {
 	string key = h->ToIdString(*itr);
+	log->Log(Logger::Level::Verbose, "TrackedResources", "adding %s: %s\n", h->GetTypePrettyString(*itr).c_str(), key.c_str());
 	TrackedByInternalTypeKey[key] = true;
     }
 
@@ -31,7 +35,7 @@ void TrackedResources::SetTracked(list<short*> tracked) {
     list<string> typeName = { "LogicAnd" };
     short *logicGate = h->GetType(typeName);
     string typeStr = h->ToIdString(logicGate);
-    cout << "adding " << typeName.front() << ": " << typeStr << endl;
+    log->Log(Logger::Level::Verbose, "TrackedResources", "adding %s: %s\n", typeName.front().c_str(), typeStr.c_str());
     TrackedByInternalTypeKey[typeStr] = true;
     NotTrackedByInternalTypeKey.erase(typeStr);
 
@@ -39,7 +43,7 @@ void TrackedResources::SetTracked(list<short*> tracked) {
     typeName.push_back("LogicOr");
     logicGate = h->GetType(typeName);
     typeStr = h->ToIdString(logicGate);
-    cout << "adding " << typeName.front() << ": " << typeStr << endl;
+    log->Log(Logger::Level::Verbose, "TrackedResources", "adding %s: %s\n", typeName.front().c_str(), typeStr.c_str());
     TrackedByInternalTypeKey[typeStr] = true;
     NotTrackedByInternalTypeKey.erase(typeStr);
 
