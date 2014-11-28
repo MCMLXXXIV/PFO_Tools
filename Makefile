@@ -6,7 +6,9 @@ CXXFLAGS=-Wall -g -std=c++0x
 #LIBS += -Wl -lmicrohttpd.a
 
 # is this working?  The resulting binary seems to be the same size...
-LIBS += -Wl,-Bstatic -lmicrohttpd -Wl,-Bdynamic -lpthread -lrt
+LIBS += -Wl,-Bstatic -lmicrohttpd -Wl,-Bdynamic -lpthread -lrt -lboost_system -lboost_filesystem
+
+INC=-I/usr/include/boost
 
 ODIR := obj
 SDIR := src
@@ -19,16 +21,15 @@ OBJS=$(addprefix $(ODIR)/,$(_OBJS))
 all : $(BDIR)/arch_test $(BDIR)/webService
 
 $(ODIR)/%.o : $(SDIR)/%.cc
-	$(CXX) -c -o $@ $< $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INC)
 
 $(BDIR)/arch_test: $(OBJS) $(ODIR)/main.o | $(BDIR)
-	$(CXX) -o $@ $^ $(CXXFLAGS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(INC)
 
 $(BDIR)/webService: $(OBJS) $(ODIR)/WebService.o | $(BDIR)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS) $(INC)
 
 $(OBJS): | $(ODIR)
-
 
 $(ODIR)/LineItem.o :           $(patsubst %,$(SDIR)/%,LineItem.h)
 $(ODIR)/OfficialData.o :       $(patsubst %,$(SDIR)/%,OfficialData.h EntityDefinition.h LineItem.h Utils.h Log.h)
