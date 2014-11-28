@@ -1,7 +1,10 @@
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#include <unistd.h>
+
 #include <microhttpd.h>
 
 #include <cassert>
@@ -9,6 +12,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+
+#include <boost/filesystem.hpp>
 
 #include "EntityTypeHelper.h"
 #include "OfficialData.h"
@@ -19,6 +24,7 @@
 #include "Plan.h"
 #include "Utils.h"
 #include "CommandLineOptions.h"
+
 
 #define PORT            8888
 #define POSTBUFFERSIZE  512
@@ -37,6 +43,8 @@ struct connectionInfo
     int BufferSize;
     struct MHD_PostProcessor *PostProcessor;
 };
+
+const char *NotFound =  "<html><head><title>File not found</title></head><body>File not found</body></html>";
 
 const char *ErrorPage = "<html><body>This doesn't seem to be right.</body></html>";
 const char *BusyPage = "<html><body>This server is busy, please try again later.</body></html>";
@@ -70,6 +78,23 @@ const char *GetPage = "\
 void MicroHttpdTest();
 
 using namespace std;
+using namespace boost::filesystem;
+
+static ssize_t
+file_reader (void *cls, uint64_t pos, char *buf, size_t max)
+{
+    FILE *file = static_cast<FILE*>(cls);
+
+    (void)  fseek (file, pos, SEEK_SET);
+    return fread (buf, 1, max, file);
+}
+
+static void
+free_callback (void *cls)
+{
+    FILE *file = static_cast<FILE*>(cls);
+    fclose (file);
+}
 
 int PrintOutKey(void *cls, enum MHD_ValueKind kind, const char *key, const char *value) {
     printf("\t%s: %s\n", key, value);
@@ -87,6 +112,80 @@ static int SendPage(struct MHD_Connection *connection, const char *page, int sta
     ret = MHD_queue_response(connection, status_code, response);
     MHD_destroy_response(response);
     return ret;
+}
+
+static string GetPagePathFromRequest(const char *requestPath) {
+
+    // massive ugliness here - real webservers will have configs that map request paths to filesystem
+    // paths.  Here I am growing a hard-coded mapping somewhat haphazardly.
+
+    string pagePath; // return value
+
+    // this is my first time using boost and using boost::filesystem - feels very awkward so far.
+    string pe; // path element
+    path p(requestPath);
+    path::iterator pitr = p.begin();
+    ++pitr;
+    if (pitr != p.end()) {
+	pe = (*pitr).string();
+    }
+
+    if (pe == "DEMO") {
+	pe = "";
+	++pitr;
+	if (pitr != p.end()) {
+	    pe = (*pitr).string();
+	}
+	string page = requestPath;
+	if (page.size() < 1 || page == ".") {
+	    page = "index.html";
+	}
+	
+	pagePath = "demo_site/html/" + page;
+    } else if (pe == "Scripts") {
+    }	
+    
+    printf("requestPath = %s; fsPath = %s\n", requestPath, pagePath.c_str());
+    return pagePath;
+}
+
+static int HandleGet(struct MHD_Connection *cxn, const char *url) {
+
+    string pagePath = "demo_site";
+    pagePath += url;
+
+    struct stat fileStat;
+    FILE *fh;
+    if (0 == stat(pagePath.c_str(), &fileStat)) {
+	if (S_ISREG(fileStat.st_mode)) {
+	    fh = fopen(pagePath.c_str(), "rb");
+	} else {
+	    fh = NULL;
+	    printf("directory requests not supported\n");
+	}
+    } else {
+	fh = NULL;
+    }
+
+    if (fh == NULL) {
+	printf("Current working directory: %s\n", initial_path().string().c_str());
+	printf("Can't open requested file: %s\n", pagePath.c_str());
+	return SendPage(cxn, NotFound, 404);
+    }
+
+    printf("requestPath = %s; fsPath = %s\n", url, pagePath.c_str());
+
+    struct MHD_Response *response = MHD_create_response_from_callback(fileStat.st_size, 32 * 1024, &file_reader, fh, &free_callback);
+    if (response == NULL) {
+	fclose(fh);
+	return MHD_NO;
+    }
+
+    int ret = MHD_queue_response(cxn, MHD_HTTP_OK, response);
+    MHD_destroy_response(response);
+
+    return ret;
+
 }
 
 static int PostIterator(void *coninfo_cls, enum MHD_ValueKind kind, const char *key,
@@ -107,7 +206,7 @@ static int PostIterator(void *coninfo_cls, enum MHD_ValueKind kind, const char *
 	memcpy(buff, data, sizeof(buff));
     }
 
-    printf("data: [%s]; ", (*data != NULL ? buff : "NULL"));
+    printf("data: [%s]; ", (*data != '\0' ? buff : "NULL"));
     printf("offset: %lu; ", off);
     printf("size: %lu;\n", size);
 
@@ -179,7 +278,7 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 
     if (0 == strcmp(method, "GET")) {
 	printf("AnswerToConnection - handling GET\n");
-	return SendPage(connection, GetPage, MHD_HTTP_OK);
+	return HandleGet(connection, url);
     }
 
     if (0 == strcmp(method, "POST")) {
