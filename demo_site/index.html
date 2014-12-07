@@ -19,7 +19,7 @@
   $('#autocomplete').autocomplete({
       source: function(request, response) {
           $.ajax({
-              url: 'entities',
+              url: '/entities',
               type: 'POST',
               dataType: 'json',
               data: { search: request.term },
