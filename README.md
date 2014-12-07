@@ -34,7 +34,7 @@ The steps will be
 Status
 ======
 
-The resulting binary, arch_test, opens the dir with the csv files (above) and goes through all the files.
+The proof of concept tool, arch_test, opens the dir with the Official Data csv files (above) and goes through all the files.
 If the file name has a handler defined, it will read the file and store the results in
 an OfficialData object.
 
@@ -49,6 +49,9 @@ think that will work so well.  So I will expand my use of the microhttpd to also
 Ultimately, this seems like a module for a webserver - but the only gotcha is that I don't want the webserver
 to have to read, parse all the data files for every request - it should just keep the data in memory.
 
+For the demo web page, I've imported a download of jquery-ui.  I wasn't sure if I should check it in - but
+I'm doing it now because 1) I don't think it breaks any license agreements, and 2) it makes this thing
+more self-contained.
 
 TODO
 ====

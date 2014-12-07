@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <cstring>
+#include <boost/algorithm/string.hpp>
 
 #include <stdlib.h>
 #include <dirent.h>
@@ -52,6 +53,7 @@
 // case-insensitive comparator, personality and Personality will not be differentiated.
 
 using namespace std;
+using namespace boost;
 
 OfficialData* OfficialData::m_pInstance = NULL;
 OfficialData* OfficialData::Instance() {
@@ -1020,3 +1022,65 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
     return true;
 }
 
+
+vector<string> OfficialData::SearchForEntitiesMatchingStrings(const char *buf)
+{
+    //     map< string, EntityDefinition*, comp> Entities;
+
+    vector<string> matchStringsCased = Utils::SplitDelimitedValues(buf, " ");
+    if (matchStringsCased.size() == 0) {
+	// I'm not really returning "matchStringsCased" but just an empty vector
+	return matchStringsCased;
+    }
+
+    vector<string> matchStrings;
+    vector<string>::iterator itr = matchStringsCased.begin();
+    for(; itr != matchStringsCased.end(); ++itr) {
+	matchStrings.push_back(to_lower_copy(*itr));
+    }
+
+    vector<string>::iterator requiredString = matchStrings.begin();
+    list<string> matchingEntities;
+    int searchCount = 0;
+    for(; requiredString != matchStrings.end(); ++requiredString) {
+	if ((*requiredString).length() == 0) { continue; }
+	if (searchCount == 0) {
+	    map<string, EntityDefinition*>::iterator itr = Entities.begin();
+	    for(; itr != Entities.end(); ++itr) {
+		string entityName = to_lower_copy((*itr).first);		
+		if (entityName.find(*requiredString) != string::npos) {
+		    matchingEntities.push_back((*itr).first);
+		}
+	    }
+	} else {
+	    if (matchingEntities.size() == 0) { break; }
+	    // here we will go through matchingEntities and remove any entry that doesn't match *requiredString
+	    // we can't remove items from a thing we are iterating over so we will make a list of items to
+	    // remove and then remove them all in a separate loop after.
+	    
+	    vector<string> itemsForRemoval;
+	    list<string>::iterator entityEntry = matchingEntities.begin();
+	    for(; entityEntry != matchingEntities.end(); ++entityEntry) {
+		string entityName = to_lower_copy(*entityEntry);
+		if (entityName.find(*requiredString) == string::npos) {
+		    itemsForRemoval.push_back(*entityEntry);
+		}
+	    }
+	    if (itemsForRemoval.size() > 0) {
+		vector<string>::iterator removeMe = itemsForRemoval.begin();
+		for(; removeMe != itemsForRemoval.end(); ++removeMe) {
+		    matchingEntities.remove(*removeMe);
+		}
+	    }
+	}
+	++searchCount;
+    }
+
+    vector<string> retVal;
+    matchingEntities.sort();
+    list<string>::iterator matchingEntry = matchingEntities.begin();
+    for(; matchingEntry != matchingEntities.end(); ++matchingEntry) {
+	retVal.push_back(*matchingEntry);
+    }
+    return retVal;
+}

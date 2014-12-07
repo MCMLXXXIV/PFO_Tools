@@ -1,11 +1,38 @@
 <html>
 <head>
+  <!-- 
   <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
-  <script src="Scripts/functions.js"></script>
+  <script src="//code.jquery.com/ui/1.11.2/jquery-ui.min.js"></script>
+  -->
+  <link href="jquery-ui-1.11.2.custom/jquery-ui.css" rel="stylesheet">
+  <script src="jquery-ui-1.11.2.custom/external/jquery/jquery.js"></script>
+  <script src="jquery-ui-1.11.2.custom/jquery-ui.js"></script>
+
 </head>
 <body>
-<h1>sweet!  See this?</h1>
-do broken script references stop this from showing?
+<h1>Pathfinder Online "Official Data" Viewer</h1>
+
+<label for="autocomplete">Select an Entity: </label>
+<input id="autocomplete">
+
+<script type="text/javascript">
+  $('#autocomplete').autocomplete({
+      source: function(request, response) {
+          $.ajax({
+              url: 'entities',
+              type: 'POST',
+              dataType: 'json',
+              data: { search: request.term },
+              success: function(data) {
+                 response($.map(data, function(item) {
+                    return { label: item, value: item }
+                 }));
+              }
+          });
+      },
+      minLength: 1
+  });
+</script>
 
 </body>
 </html>

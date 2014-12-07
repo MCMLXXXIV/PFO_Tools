@@ -17,6 +17,7 @@ class OfficialData {
     EntityDefinition* GetEntity(string name);
     void Dump();
     void SearchForItemsThatRequire(EntityDefinition* entity);
+    vector<string> SearchForEntitiesMatchingStrings(const char*);
 
     static bool ParseProgressionFile(string fn);
 

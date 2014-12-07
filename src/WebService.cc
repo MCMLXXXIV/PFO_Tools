@@ -29,6 +29,7 @@
 #define PORT            8888
 #define POSTBUFFERSIZE  512
 #define MAXCLIENTS      2
+#define MAXPOSTSIZE     8192
 
 #define GET             0
 #define POST            1
@@ -39,41 +40,18 @@ static unsigned int nr_of_clients = 0;
 struct connectionInfo
 {
     int ConnectionType;
-    char **Buffer;
-    int BufferSize;
+    char *Buffer;
+    int BufferContentLength;
+    ulong BufferSize;
+    int PostTooLarge;
     struct MHD_PostProcessor *PostProcessor;
 };
 
 const char *NotFound =  "<html><head><title>File not found</title></head><body>File not found</body></html>";
-
 const char *ErrorPage = "<html><body>This doesn't seem to be right.</body></html>";
 const char *BusyPage = "<html><body>This server is busy, please try again later.</body></html>";
 const char *CompletePage = "<html><body>The upload has been completed.</body></html>";
 const char *ServererrorPage = "<html><body>An internal server error has occured.</body></html>";
-const char *GetPage = "\
-<html>\
-<head>\
-  <script src=\"//code.jquery.com/jquery-1.11.0.min.js\"></script>\
-  <script>\
-    $(document).ready(function(){\
-       $('#fetch').click(function(){\
-          $.ajax({\
-              url: '/Item/',\
-              type: 'POST',\
-              data: { zipcode: 94070, items: [ 'grob', 'reed' ], store: [ { 'clay': { 'qty': 5 }, 'wood': { 'qty': 10 } } ] },\
-              success: function(data) {\
-                  $('#Reply').html(data + ' degrees');\
-              }\
-          });\
-       });\
-    });\
-  </script>\
-</head>\
-<body>\
-<div id='Reply'></div>\
-<button id='fetch'>Fetch</button>\
-</body>\
-</html>";
 
 void MicroHttpdTest();
 
@@ -112,41 +90,6 @@ static int SendPage(struct MHD_Connection *connection, const char *page, int sta
     ret = MHD_queue_response(connection, status_code, response);
     MHD_destroy_response(response);
     return ret;
-}
-
-static string GetPagePathFromRequest(const char *requestPath) {
-
-    // massive ugliness here - real webservers will have configs that map request paths to filesystem
-    // paths.  Here I am growing a hard-coded mapping somewhat haphazardly.
-
-    string pagePath; // return value
-
-    // this is my first time using boost and using boost::filesystem - feels very awkward so far.
-    string pe; // path element
-    path p(requestPath);
-    path::iterator pitr = p.begin();
-    ++pitr;
-    if (pitr != p.end()) {
-	pe = (*pitr).string();
-    }
-
-    if (pe == "DEMO") {
-	pe = "";
-	++pitr;
-	if (pitr != p.end()) {
-	    pe = (*pitr).string();
-	}
-	string page = requestPath;
-	if (page.size() < 1 || page == ".") {
-	    page = "index.html";
-	}
-	
-	pagePath = "demo_site/html/" + page;
-    } else if (pe == "Scripts") {
-    }	
-    
-    printf("requestPath = %s; fsPath = %s\n", requestPath, pagePath.c_str());
-    return pagePath;
 }
 
 static int HandleGet(struct MHD_Connection *cxn, const char *url) {
@@ -193,20 +136,48 @@ static int PostIterator(void *coninfo_cls, enum MHD_ValueKind kind, const char *
 			const char *transfer_encoding, const char *data, uint64_t off,
 			size_t size)
 {
-    // struct connectionInfo *conInfo = static_cast<connectionInfo*>(coninfo_cls);
+    struct connectionInfo *conInfo = static_cast<connectionInfo*>(coninfo_cls);
+
+    if (conInfo->PostTooLarge == 0) {
+	if (size > 0) {
+	    if (size + conInfo->BufferContentLength > conInfo->BufferSize) {
+		ulong newSize = conInfo->BufferSize + POSTBUFFERSIZE;
+		if (newSize > MAXPOSTSIZE) {
+		    printf("Too much post data (%lu bytes; max: %d) - will not process this post\n", newSize, MAXPOSTSIZE);
+		    conInfo->PostTooLarge = 1;
+		    free(conInfo->Buffer);
+		    conInfo->Buffer = NULL;
+		    conInfo->BufferSize = 0;
+		    conInfo->BufferContentLength = 0;
+		} else {
+		    if (conInfo->Buffer == NULL) {
+			conInfo->Buffer = (char*)malloc(sizeof(char) * newSize);
+			memset(conInfo->Buffer, '\0', newSize);
+		    } else {
+			conInfo->Buffer = (char*)realloc(conInfo->Buffer, sizeof(char) * newSize);
+		    }
+		    assert(conInfo->Buffer != NULL);
+		    conInfo->BufferSize = newSize;
+		}
+	    }
+	    if (conInfo->PostTooLarge == 0) {
+		memcpy(conInfo->Buffer + conInfo->BufferContentLength, data, conInfo->BufferSize - conInfo->BufferContentLength);
+		conInfo->BufferContentLength += size;
+	    }
+	}
+    } else {
+	printf("Post already too large - skipping this portion too\n");
+    }
+
+    char buf[POSTBUFFERSIZE + 1];
+    memset(buf, '\0', sizeof(buf));
+    memcpy(buf, data, sizeof(buf));
 
     printf("key:[%s]; ", (key != NULL ? key : "NULL"));
     printf("filename: [%s]; ", (filename != NULL ? filename : "NULL"));
     printf("content_type: [%s]; ", (content_type != NULL ? content_type : "NULL"));
     printf("transfer_encoding: [%s]; ", (transfer_encoding != NULL ? transfer_encoding : "NULL"));
-
-    char buff[1024];
-    memset(buff, '\0', sizeof(buff));
-    if (size > 0) {
-	memcpy(buff, data, sizeof(buff));
-    }
-
-    printf("data: [%s]; ", (*data != '\0' ? buff : "NULL"));
+    printf("data: [%s]; ", (*data != '\0' ? buf : "NULL"));
     printf("offset: %lu; ", off);
     printf("size: %lu;\n", size);
 
@@ -233,7 +204,32 @@ static void RequestCompleted(void *cls, struct MHD_Connection *con, void **con_c
 
     delete conInfo;
     *con_cls = NULL;
+}
 
+static int HandlePost(struct MHD_Connection *connection, const char *url, struct connectionInfo *conInfo)
+{
+    printf("HandlePost(%s, %s)\n", url, conInfo->Buffer);
+    if (strncmp("/entities", url, strlen("/entities")) == 0) {
+	OfficialData* rulesGraph = OfficialData::Instance();
+	vector<string> entities = rulesGraph->SearchForEntitiesMatchingStrings(conInfo->Buffer);
+
+	printf("Got %lu entities from \"%s\"\n", entities.size(), conInfo->Buffer);
+
+	int addSep = 0;
+	string result = "[";
+	vector<string>::iterator itr = entities.begin();
+	for(; itr != entities.end(); ++itr) {
+	    if (addSep != 0) { result += ","; } else { addSep = 1; }
+	    result += " \"" + *itr + "\"";
+	}
+	result += " ]";
+	printf("%s\n", result.c_str());
+	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
+    }
+
+    char buffer[1024];
+    snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
+    return SendPage(connection, buffer, MHD_HTTP_OK);
 }
 
 static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
@@ -244,6 +240,7 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 			      size_t *upload_data_size,
 			      void **con_cls)
 {
+    printf("AnswerToConnection - ENTRY\n");
     if (NULL == *con_cls) {
 	printf("AnswerToConnection - no con_cls yet\n");
 	// fisrt time calling this for the connection
@@ -257,6 +254,10 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 	if (NULL == conInfo) {
 	    return MHD_NO;
 	}
+	conInfo->Buffer = NULL;
+	conInfo->BufferSize = 0;
+	conInfo->BufferContentLength = 0;
+	conInfo->PostTooLarge = 0;
 
 	if (0 == strcmp(method, "POST")) {
 	    conInfo->PostProcessor = MHD_create_post_processor(connection, POSTBUFFERSIZE, PostIterator, (void*)conInfo);
@@ -282,16 +283,17 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
     }
 
     if (0 == strcmp(method, "POST")) {
-	printf("AnswerToConnection - handling POST\n");
 	struct connectionInfo *conInfo = static_cast<connectionInfo*>(*con_cls);
 	if (0 != *upload_data_size) {
+	    printf("AnswerToConnection - processing POST\n");
 	    MHD_post_process(conInfo->PostProcessor, upload_data, *upload_data_size);
 	    *upload_data_size = 0;
 	    return MHD_YES;
 	} else {
-	    char buffer[1024];
-	    snprintf(buffer, sizeof(buffer), "AnswerToConnection called; POST, and no upload_data");
-	    return SendPage(connection, buffer, MHD_HTTP_OK);
+	    printf("AnswerToConnection - replying to POST\n");
+	    struct connectionInfo *conInfo = static_cast<connectionInfo*>(*con_cls);
+	    printf("post body %d bytes: %s\n", conInfo->BufferContentLength, conInfo->BufferContentLength > 0 ? conInfo->Buffer : "NULL");
+	    return HandlePost(connection, url, conInfo);
 	}
     }
     return SendPage(connection, ErrorPage, MHD_HTTP_BAD_REQUEST);
@@ -318,6 +320,9 @@ void MicroHttpdTest() {
 }
 
 int main(int argc, char **argv) {
+
+    OfficialData* rulesGraph = OfficialData::Instance();
+    rulesGraph->ProcessSpreadsheetDir("official_data");
 
     MicroHttpdTest();
     cout << "test over" << endl;
