@@ -14,7 +14,7 @@ CommandLineOptionsEncapsulation::CommandLineOptionsEncapsulation() {
     GetPlanForItem = false;
     ParseError = false;
     SearchForItemsThatRequire = false;
-    ParseProgressionFile = false;
+    ParseFile = false;
     VerbosityLevel = 99;
     LoggingTags = "";
 }
@@ -39,7 +39,7 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
 	    Items = optarg;
 	    break;
 	case 'P':
-	    ParseProgressionFile = true;
+	    ParseFile = true;
 	    Items = optarg;
 	    break;
 	case 'R':
@@ -65,7 +65,7 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
         printf("\n");
     }
 
-    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem && !SearchForItemsThatRequire && !ParseProgressionFile) {
+    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem && !SearchForItemsThatRequire && !ParseFile) {
 	ParseError = true;
 	ErrMsg = "no (valid) args";
     }
@@ -79,7 +79,7 @@ void CommandLineOptionsEncapsulation::ShowHelp() {
 	 << "   [-d]               dump all parsed entities" << endl
 	 << "   [-r item[,item2]]  dump the known requirements for the item(s)" << endl
 	 << "   [-p item[,item2]]  show a plan to create the item(s)" << endl
-	 << "   [-P file]          parse and dump a progression file" << endl
+	 << "   [-P file]          parse and dump a data file" << endl
 	 << "   [-R item]          debug: search all known enities for those that have item as a requirement" << endl
 	 << "   [-t tag1[,tag2]]   sets logging tags; EG: knownParseErrors" << endl
 	 << "   [-v level]         set the verbosity level to 'level'" << endl

@@ -8,7 +8,7 @@
 
 class OfficialData;
 
-typedef bool (OfficialData::*FileProcessor)(string);
+typedef bool (OfficialData::*FileProcessor)(string,bool);
 
 class OfficialData {
  public:
@@ -18,33 +18,32 @@ class OfficialData {
     void Dump();
     void SearchForItemsThatRequire(EntityDefinition* entity);
     vector<string> SearchForEntitiesMatchingStrings(const char*);
-
-    static bool ParseProgressionFile(string fn);
+    bool TestParseFile(string fn);
 
  private:
     OfficialData();
 
-    bool ParseAndStoreCraftingRecipeFile(string fn);
-    bool ParseAndStoreRefiningRecipeFile(string fn);
-    bool ParseAndStoreSkillsAdvancementFile(string fn);
-    bool ParseAndStoreArmorAdvancementFile(string fn);
-    bool ParseAndStoreAttackAdvancementFile(string fn);
-    bool ParseAndStoreBonusesAdvancementFile(string fn);
-    bool ParseAndStoreCantripAdvancementFile(string fn);
-    bool ParseAndStoreDefensiveAdvancementFile(string fn);
-    bool ParseAndStoreExpendablesAdvancementFile(string fn);
-    bool ParseAndStoreFeatureAdvancementFile(string fn);
-    bool ParseAndStoreOrisonAdvancementFile(string fn);
-    bool ParseAndStorePointsAdvancementFile(string fn);
-    bool ParseAndStoreProficienciesAdvancementFile(string fn);
-    bool ParseAndStoreReactiveAdvancementFile(string fn);
-    bool ParseAndStoreUtilityAdvancementFile(string fn);
+    bool ParseAndStoreCraftingRecipeFile(string fn, bool testRun);
+    bool ParseAndStoreRefiningRecipeFile(string fn, bool testRun);
+    bool ParseAndStoreSkillsAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreArmorAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreAttackAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreBonusesAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreCantripAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreDefensiveAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreExpendablesAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreFeatureAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreOrisonAdvancementFile(string fn, bool testRun);
+    bool ParseAndStorePointsAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreProficienciesAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreReactiveAdvancementFile(string fn, bool testRun);
+    bool ParseAndStoreUtilityAdvancementFile(string fn, bool testRun);
 
-    bool ParseAndStoreFeatAchievements(string fn);
-    bool ParseAndStoreCrowdforgedRecipeDataFile(string fn);
+    bool ParseAndStoreFeatAchievements(string fn, bool testRun);
+    bool ParseAndStoreCrowdforgedRecipeDataFile(string fn, bool testRun);
 
-    bool ParseAndStoreRecipeFile(string fn, string subtype);
-    bool ParseAndStoreProgressionFile(string fn, string eType);
+    bool ParseAndStoreRecipeFile(string fn, bool testRun, string subtype);
+    bool ParseAndStoreProgressionFile(string fn, bool testRun, string eType);
 
     LineItem* ParseRequirementString(string reqStr, string entityName, string &errMsg);
     LineItem* BuildLineItemFromKeyEqualsVal(string kvp, string entityTypeName);

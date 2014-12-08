@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstring>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 #include <stdlib.h>
 #include <dirent.h>
@@ -83,22 +84,19 @@ OfficialData::OfficialData() {
     FileProcessorMap["RecipeYields_Crowdforged.csv"] = &OfficialData::ParseAndStoreCrowdforgedRecipeDataFile;
 }
 
-bool OfficialData::ParseAndStoreSkillsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreArmorAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreAttackAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreBonusesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreCantripAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreDefensiveAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreExpendablesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-//bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreOrisonAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStorePointsAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-//bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreReactiveAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreUtilityAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-
-bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
-bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn) {    return this->ParseAndStoreProgressionFile(fn, "Feat");}
+bool OfficialData::ParseAndStoreSkillsAdvancementFile(string fn, bool t)        { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreArmorAdvancementFile(string fn, bool t)         { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreAttackAdvancementFile(string fn, bool t)        { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreBonusesAdvancementFile(string fn, bool t)       { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreCantripAdvancementFile(string fn, bool t)       { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreDefensiveAdvancementFile(string fn, bool t)     { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreExpendablesAdvancementFile(string fn, bool t)   { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreOrisonAdvancementFile(string fn, bool t)        { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStorePointsAdvancementFile(string fn, bool t)        { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreReactiveAdvancementFile(string fn, bool t)      { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreUtilityAdvancementFile(string fn, bool t)       { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn, bool t)       { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
+bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn, bool t) { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
 
 
 void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
@@ -119,7 +117,7 @@ void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
     }
 }
 
-bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn) {
+bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn, bool testRun) {
     Logger *log = Logger::Instance();
     
     ifstream fin(fn.c_str());
@@ -156,7 +154,7 @@ bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn) {
     return true;
 }
 
-bool OfficialData::ParseAndStoreFeatAchievements(string fn) {
+bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
     EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
     Logger *log = Logger::Instance();
 
@@ -306,7 +304,7 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
 	}
 
 	if (FileProcessorMap[fname]) {
-	    (this->*FileProcessorMap[fname])(filepath);
+	    (this->*FileProcessorMap[fname])(filepath, false);
 	} else {
 	    Logger::Instance()->Log(Logger::Level::Warn, "OfficialData", "no handler for %s\n", fname.c_str());
 	}	
@@ -317,7 +315,7 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     map<string,string>::iterator itr;
     for (itr = delayed.begin(); itr != delayed.end(); ++itr) {
 	if (FileProcessorMap[(*itr).first]) {
-	    (this->*FileProcessorMap[(*itr).first])((*itr).second);
+	    (this->*FileProcessorMap[(*itr).first])((*itr).second, false);
 	} else {
 	    Logger::Instance()->Log(Logger::Level::Warn, "OfficialData", "no handler for %s\n", (*itr).first.c_str());
 	}	
@@ -327,7 +325,7 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     return 0;
 }
 
-bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
+bool OfficialData::ParseAndStoreProgressionFile(string fn, bool testRun, string t) {
     // open the file named fn
     // parse the data cells
     // foreach row
@@ -601,97 +599,21 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, string t) {
     return true;
 }
 
-bool OfficialData::ParseProgressionFile(string fn) {
+bool OfficialData::TestParseFile(string filepath) {
     // open the file named fn
-    // parse the data cells
-    // foreach row
-    //    make an entity definition and fill it out
-    //    store the entity in the global entity map by the name
-
-    // cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
+    // parse dump the data cells to stdout
 
     Logger *log = Logger::Instance();
 
-    ifstream fin(fn.c_str());
-    if (!fin.is_open()) {
-	cerr << "failed to read file " << fn << " errno: " << errno << endl;
-	return false;
+    filesystem::path path(filepath);
+    string fname = path.leaf().string();
+
+    if (FileProcessorMap[fname]) {
+	(this->*FileProcessorMap[fname])(filepath, true);
+    } else {
+	log->Log(Logger::Level::Warn, "OfficialData", "no handler for %s\n", fname.c_str());
     }
-    string line;
-    int line_num = 0;
-    uint slotNameColumn = 0;
-    while(getline(fin, line)) {
-	++line_num;
-	// there is only one line per feat with each line having the data out to the max feat (121 total fields)
-	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
-
-	if (fields.size() < 1) {
-	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d is empty.  Skipping...\n", fn.c_str(), line_num);
-	    assert(line_num > 1);
-	    continue;
-	}
-	
-	if (fields[0].size() == 0) {
-	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d has %d columns but an empty name.  Skipping...\n", fn.c_str(), line_num, fields.size());
-	    assert(line_num > 1);
-	    continue;
-	}
-
-	//Index (but only in Points Advancement.csv)
-	//SlotName
-	//Exp Lv1
-	//Category Lv1
-	//Feat Lv1
-	//Achievement Lv1
-	//AbilityReq Lv1
-	//AbilityBonus Lv1
-	//Exp Lv2
-	//Category Lv2
-	//Feat Lv2
-	//Achievement Lv2
-	//AbilityReq Lv2
-	//AbilityBonus Lv2
-
-	if (line_num == 1) {
-	    // cout << "skipping first line w/ first field: [" << featName << "]" << endl;
-	    // find the "SlotName" column and skip the line
-	    // I could make this parser digest the header column names and then fetch the cells
-	    // by refering to the name - but that would be just as brittle because there is no
-	    // guarantee that Goblinworks won't fat finger that also
-	    for (uint idx = 0; idx < fields.size(); ++idx) {
-		if (fields[idx] == "SlotName") {
-		    slotNameColumn = idx;
-		    // just to be aware when things change again
-		    assert(slotNameColumn < 2);
-		    break;
-		}
-	    }
-	    log->Log(Logger::Level::Verbose, "OfficialData", "slotNameColumn=%u\n", slotNameColumn);
-	}
-
-	string featName = fields[slotNameColumn];
-	log->Log(Logger::Level::Verbose, "OfficialData", "FeatName:[%s]\n", featName.c_str());
-
-	uint idx;
-	int rank;
-	for (idx = slotNameColumn + 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
-
-	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ]
-	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
-	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
-	    if ((fields.size() - idx) < 6) {
-		log->Log(Logger::Level::Warn, "OfficialData",
-					"%s:%d  %s rank %d has incomplete data - skipping...\n",
-					fn.c_str(), line_num, featName.c_str(), rank);
-	    }
-
-	    vector<string> colNames = {"Exp", "Cat", "Fea", "ach", "aRq", "aBo"};
-	    for (uint setIdx = 0; setIdx < 6 && idx+setIdx < fields.size(); ++setIdx) {
-		cout << colNames[setIdx] << " " << rank << " [" << fields[idx+setIdx] << "]" << endl;
-	    }
-	}
-    }
-    fin.close();
+    
     return true;
 }
 
@@ -795,12 +717,12 @@ LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityT
 }
 
 
-bool OfficialData::ParseAndStoreCraftingRecipeFile(string fn) {
-    return this->ParseAndStoreRecipeFile(fn, "Craft");
+bool OfficialData::ParseAndStoreCraftingRecipeFile(string fn, bool testRun) {
+    return this->ParseAndStoreRecipeFile(fn, testRun, "Craft");
 }
 
-bool OfficialData::ParseAndStoreRefiningRecipeFile(string fn) {
-    return this->ParseAndStoreRecipeFile(fn, "Refine");
+bool OfficialData::ParseAndStoreRefiningRecipeFile(string fn, bool testRun) {
+    return this->ParseAndStoreRecipeFile(fn, testRun, "Refine");
 }
 
 // going to handle subtype differently - later I'll add a list of tags in the EntityDefinition
@@ -808,7 +730,7 @@ bool OfficialData::ParseAndStoreRefiningRecipeFile(string fn) {
 // is (almost) ignored.  Until I am parsing the file that tells me how much an item is created
 // when you do one creation job (eg, if you make course thread, you get about 20 of them per job)
 // I am adding dummy, random values when this function is called with ignored == "Refine".
-bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
+bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignored) {
     // open the file named fn
     // parse the data cells
     // foreach row
@@ -827,6 +749,8 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
     }
     string line;
     int line_num = 0;
+    vector<string> colName;
+    int colNameMaxLen = 0;
     while(getline(fin, line)) {
 	// this is kind of ugly as the header line is incorrect at this time.  EG, it says:
 	// |Component 3 and Number|  Achievement Type|Base Crafting Seconds|Last Updated
@@ -852,29 +776,91 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	//    14     Base Crafting Seconds  3000
 	//    15     Last Updated           9-18-14
 
+	// Recipe Name,Feat Name,Feat Rank,Tier,Component 1,#1,Component 2,#2,Component 3,#3,Component 4,#4,Output,,#,Base Crafting Seconds,Category,+0 Quality,Achievement Type,Last Updated,Template|R
+
+	//[ 0]           Recipe Name Weak Soothing Extract +3
+	//[ 1]             Feat Name Apothecary
+	//[ 2]             Feat Rank 5.0
+	//[ 3]                  Tier 1.0
+	//[ 4]               Stock 1 Weak Soothing
+	//[ 5]                    #1 12.0
+	//[ 6]               Stock 2 Ordered Essence
+	//[ 7]                    #2 5.0
+	//[ 8]               Stock 3
+	//[ 9]                    #3
+	//[10]               Stock 4
+	//[11]                    #4
+	//[12]                Output Weak Soothing Extract
+	//[13]               Upgrade 3.0
+	//[14]                     # 3.0
+	//[15] Base Crafting Seconds 200.0
+	//[16]               Quality 72.0
+	//[17]               Variety Chemical
+	//[18]      Achievement Type Uncommon
+	//[19]          Last Updated 11-24-14
+	//[20] Template|Recipe Name| Recipe|Weak Soothing Extract +3|Apothecary|5|1|Weak Soothing|12|Ordered Essence|5|||||Uncommon|200|11-24-14
+
 	++line_num;
 
 	// skip the first line - its a header line
-	if (line_num < 2) continue;
+	if (line_num < 2) {
+	    colName = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+	    vector<string>::iterator colNm = colName.begin();
+	    for(; colNm != colName.end(); ++colNm) {
+		int len = (*colNm).length();
+		if (len < 100 && len > colNameMaxLen) {
+		    colNameMaxLen = len;
+		    log->Log(Logger::Level::Verbose, "OfficialData",
+			     "longer column name: %s\n", (*colNm).c_str());
+		}
+	    }
+	    log->Log(Logger::Level::Verbose, "OfficialData",
+		     "Parsed column names from header - have %d column names\n", colName.size());
 
-	stringstream linestream(line);
-	string val;
-	vector<string> fields;
-	while (getline(linestream, val, '|')) {
-	    fields.push_back(val);
-	}
-	if (fields.size() != 16) {
-	    log->Log(Logger::Level::Warn, "OfficialData",
-		     "%s:%d doesn't have 16 fields - has %d : %s\n",
-		     fn.c_str(), line_num, fields.size(), line.c_str());
+	    for(uint idx = 0; idx < colName.size(); ++idx) {
+		log->Log(Logger::Level::Verbose, "OfficialData",
+			 "column %2u: %s\n", idx, colName[idx].c_str());
+	    }		
 	    continue;
 	}
-	if (fields[1].size() < 1) {
+
+	//stringstream linestream(line);
+	string val;
+	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+	
+	// old way, pre Dec 2014.  Then the fields were poorly delimited by a '|'
+	//while (getline(linestream, val, '|')) {
+	//   fields.push_back(val);
+	//}
+
+	if (testRun == true) {
+	    char diagFormatStr[1024];
+	    snprintf(diagFormatStr, 1023, "[%%2u] %%%d.%ds %%s\n", colNameMaxLen, colNameMaxLen);
+	    printf("----------------------------------------------------------------------------------------------------------------\n");
+	    for(uint idx = 0; idx < fields.size(); ++idx) {
+		printf(diagFormatStr, idx, colName[idx].c_str(), fields[idx].c_str());
+	    }
+	    continue;
+	}
+	
+	if (fields.size() != 21) {
+	    if (fields.size() >= 18) {
+		log->Log(Logger::Level::Warn, "OfficialData",
+			 "%s:%d doesn't have 21 fields - has %d - missing the 'Last Updated' field - but we don't use that: %s\n",
+			 fn.c_str(), line_num, fields.size(), line.c_str());
+	    } else {
+		log->Log(Logger::Level::Warn, "OfficialData",
+			 "%s:%d doesn't have 21 fields - has %d : %s\n",
+			 fn.c_str(), line_num, fields.size(), line.c_str());
+		continue;
+	    }
+	}
+	if (fields[0].size() < 1) {
 	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d has %d columns but an empty name : %s\n", fn.c_str(), line_num, fields.size(), line.c_str());
 	    continue;
 	}
 
-	string *name = new string(fields[1]);
+	string *name = new string(fields[0]);
 	int rankInName;
 	char *namePart;
 	if (Utils::RankInName(name->c_str(), &namePart, rankInName)) {
@@ -934,9 +920,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	    StoreEntity(fullyQualifiedName, entity);
 	}
 
-	// leter I'll consume the secondary, crowd sourced, table that gives the yield
-	// for refining stuff
-	entity->CreationIncrement = 1;
+	entity->CreationIncrement = atoi(fields[14].c_str());
 
 	entity->ProcessedSpreadsheetDefinition = true;
 	
@@ -954,12 +938,12 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	    req->Entity->Type = typeHelper->GetType(typeFields);
 	    StoreEntity("Time", req->Entity);
 	}
-	req->Quantity = atoi(fields[14].c_str());
+	req->Quantity = atoi(fields[15].c_str());
 	entity->Requirements[0].push_back(req);
 
 	// Feat requirement
-	string featName = fields[2];
-	int featLevel = atoi(fields[3].c_str());
+	string featName = fields[1];
+	int featLevel = atoi(fields[2].c_str());
 
 	string featNameFqn = "Feat." + featName;
 	req = new LineItem();
@@ -988,7 +972,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, string ignored) {
 	
 	// now all the components - we only have three per recipe right now but I think there
 	// is space in here for four.
-	for (int componentOffset = 5; componentOffset < 10; componentOffset += 2) {
+	for (int componentOffset = 4; componentOffset < 12; componentOffset += 2) {
 	    if (fields[componentOffset].size() < 1) { continue; }
 	    string componentName = fields[componentOffset];
 	    string componentNameFqn = "Item." + componentName;

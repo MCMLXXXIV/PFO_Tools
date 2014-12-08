@@ -52,12 +52,12 @@ int main(int argc, char **argv) {
 	return 1;
     }    
 
-    if (opts.ParseProgressionFile) {
-	OfficialData::ParseProgressionFile(opts.Items);
+    OfficialData* rulesGraph = OfficialData::Instance();
+    if (opts.ParseFile) {
+	rulesGraph->TestParseFile(opts.Items);
 	return 0;
     }
 
-    OfficialData* rulesGraph = OfficialData::Instance();
     rulesGraph->ProcessSpreadsheetDir("official_data");
     
     if (opts.DumpItems) {

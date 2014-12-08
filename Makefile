@@ -24,7 +24,7 @@ $(ODIR)/%.o : $(SDIR)/%.cc
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(INC)
 
 $(BDIR)/arch_test: $(OBJS) $(ODIR)/main.o | $(BDIR)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(INC)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS) $(INC)
 
 $(BDIR)/webService: $(OBJS) $(ODIR)/WebService.o | $(BDIR)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS) $(INC)
