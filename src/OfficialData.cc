@@ -16,6 +16,10 @@
 #include <sys/types.h>
 #include <errno.h>
 
+#include <map>
+#include <string>
+#include <strings.h>
+
 #include "OfficialData.h"
 #include "EntityDefinition.h"
 #include "EntityTypeHelper.h"
@@ -98,183 +102,6 @@ bool OfficialData::ParseAndStoreUtilityAdvancementFile(string fn, bool t)       
 bool OfficialData::ParseAndStoreFeatureAdvancementFile(string fn, bool t)       { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
 bool OfficialData::ParseAndStoreProficienciesAdvancementFile(string fn, bool t) { return this->ParseAndStoreProgressionFile(fn, t, "Feat");}
 
-
-void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
-    bool foundOne = false;
-    set<EntityDefinition*> searched;
-    map< string, EntityDefinition* >::iterator tlItr;
-    for (tlItr = Entities.begin(); tlItr != Entities.end(); ++tlItr) {
-	string key = (*tlItr).first;
-	EntityDefinition* entity = (*tlItr).second;
-	if (entity->HasRequirement(targetEntity, searched)) {
-	    // this one is just a cout because it's the requsted output - not logging
-	    cout << key << " / " << entity->Name << " has this as a requirement" << endl;
-	    foundOne = true;
-	}
-    }
-    if (foundOne == false) {
-	cout << "didn't find this as a requirement - searched " << searched.size() << " entities" << endl;
-    }
-}
-
-bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn, bool testRun) {
-    Logger *log = Logger::Instance();
-    
-    ifstream fin(fn.c_str());
-    if (!fin.is_open()) {
-	cerr << "failed to read file " << fn << " errno: " << errno << endl;
-	return false;
-    }
-    string line;
-    int line_num = 0;
-    while(getline(fin, line)) {
-	++line_num;
-	if (line_num == 1) {
-	    assert(string("Skill,Rank,Recipe Name,Qty Produced") == line);
-	    continue;
-	}
-
-	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
-	assert(fields.size() == 4);
-	
-	string itemName = fields[2];
-	EntityDefinition *entity = GetEntity("Item." + itemName);
-	if (entity == NULL) {
-	    bool foundEntity = (entity != NULL);
-	    log->Log(Logger::Level::Error, "", "Can't find %s\n", itemName.c_str());
-	    assert(foundEntity == true);
-	}
-
-	if (fields[3].size() > 0) {
-	    entity->CreationIncrement = atoi(fields[3].c_str());
-	}
-    }
-    fin.close();
-    log->Log(Logger::Level::Note, "OfficialData", "parsed %s\n", fn.c_str()); 
-    return true;
-}
-
-bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
-    EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
-    Logger *log = Logger::Instance();
-
-    ifstream fin(fn.c_str());
-    if (!fin.is_open()) {
-	cerr << "failed to read file " << fn << " errno: " << errno << endl;
-	return false;
-    }
-    string line;
-    int line_num = 0;
-    while(getline(fin, line)) {
-	++line_num;
-	if (line_num == 1) {
-	    assert(string("Display Name,Description,Feat Req List") == line);
-	    continue;
-	}
-
-	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
-	assert(fields.size() == 3);
-
-	int rank;
-	char *namePart;
-	bool rankInName = Utils::RankInName(fields[0].c_str(), &namePart, rank);
-	assert(rankInName == true);
-	
-	string featNameShort = namePart;
-	delete namePart;
-
-	string featNameFQ = "Feat.";
-	featNameFQ += featNameShort;
-
-	EntityDefinition *entity = GetEntity(featNameFQ);
-	if (entity == NULL) {
-	    entity = new EntityDefinition();
-	    entity->Name = featNameShort;
-
-	    list<string> typeFields;
-	    typeFields.push_back("Feat");
-	    typeFields.push_back(featNameShort);
-	    entity->Type = typeHelper->GetType(typeFields);
-	    StoreEntity(featNameFQ, entity);
-	}
-	entity->ProcessedSpreadsheetDefinition = true;
-
-	if (entity->Requirements.size() == 0) {
-	    // skipping rank zero
-	    entity->Requirements.push_back(*(new list<LineItem*>));
-	    entity->Provides.push_back(*(new list<LineItem*>));
-	}
-	while (entity->Requirements.size() <= (unsigned)rank) {
-	    entity->Requirements.push_back(*(new list<LineItem*>));
-	    entity->Provides.push_back(*(new list<LineItem*>));
-	}
-
-	list<LineItem*> *reqs = &(entity->Requirements[rank]);
-	// we should only ever process the reqs for a given rank of a given entity once
-	assert(reqs->size() == 0);
-
-	// add the previous rank as a requirement
-	if (rank > 1) {
-	    LineItem *req = new LineItem(entity, (rank - 1));
-	    reqs->push_back(req);
-	}
-	
-	string reqStr = fields[2];
-	string label = "Feat";
-	string errMsg = "";
-	if (reqStr.size() > 0) {
-	    LineItem *required = ParseRequirementString(reqStr, label, errMsg);
-	    if (required == NULL) {
-		log->Log(Logger::Level::Warn, "OfficialData", "failed to parse this %s requirement string: [%s]; err: %s\n", label.c_str(), reqStr.c_str(), errMsg.c_str());
-		// cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
-	    } else {
-		reqs->push_back(required);
-	    }
-	}
-    }
-    fin.close();
-
-    log->Log(Logger::Level::Note, "OfficialData", "parsed %s\n", fn.c_str());
-    return true;
-}
-
-
-
-void OfficialData::Dump() {
-
-    cout << "Have " << Entities.size() << " entities" << endl;
-
-    map<string, EntityDefinition*>::iterator itr;
-    for (itr = Entities.begin(); itr != Entities.end(); ++itr) {
-	cout << *((*itr).second) << endl;
-    }
-}
-
-bool OfficialData::StoreEntity(string fullyQualifiedName, EntityDefinition *entity) {
-    map< string, EntityDefinition* >::iterator entityMapEntry;
-    entityMapEntry = Entities.find(fullyQualifiedName);
-    if (entityMapEntry == Entities.end()) {
-	Entities[fullyQualifiedName] = entity;
-	return true;
-    } else {
-	bool alreadyExists = true;
-	assert(alreadyExists == false);
-	return false;
-    }
-    return false;
-}
-
-
-EntityDefinition* OfficialData::GetEntity(string fullyQualifiedName) {
-    map< string, EntityDefinition* >::iterator entityMapEntry;
-    entityMapEntry = Entities.find(fullyQualifiedName);
-    if (entityMapEntry == Entities.end()) {
-	return NULL;
-    } else {
-	return (*entityMapEntry).second;
-    }
-}
-
 int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     DIR *dp;
     struct dirent *dirp;
@@ -325,280 +152,6 @@ int OfficialData::ProcessSpreadsheetDir(string directoryName) {
     return 0;
 }
 
-bool OfficialData::ParseAndStoreProgressionFile(string fn, bool testRun, string t) {
-    // open the file named fn
-    // parse the data cells
-    // foreach row
-    //    make an entity definition and fill it out
-    //    store the entity in the global entity map by the name
-
-    // cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
-
-    EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
-    Logger *log = Logger::Instance();
-
-    ifstream fin(fn.c_str());
-    if (!fin.is_open()) {
-	log->Log(Logger::Level::Error, "", "Failed to read file %s: %s (%d)\n", fn.c_str(), strerror(errno), errno);
-	return false;
-    }
-    string line;
-    int line_num = 0;
-    uint slotNameColumn = 0;
-    while(getline(fin, line)) {
-	++line_num;
-	// there is only one line per feat with each line having the data out to the max feat (121 total fields)
-	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
-
-	if (fields.size() < 1) {
-	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d is empty.  Skipping...\n", fn.c_str(), line_num);
-	    assert(line_num > 1);
-	    continue;
-	}
-	
-	if (fields[0].size() == 0) {
-	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d has %d columns but an empty name.  Skipping...\n", fn.c_str(), line_num, fields.size());
-	    assert(line_num > 1);
-	    continue;
-	}
-
-	//Index (but only in Points Advancement.csv as of 26 Oct dump)
-	//SlotName
-	//Exp Lv1
-	//Category Lv1
-	//Feat Lv1
-	//Achievement Lv1
-	//AbilityReq Lv1
-	//AbilityBonus Lv1
-	//Exp Lv2
-	//Category Lv2
-	//Feat Lv2
-	//Achievement Lv2
-	//AbilityReq Lv2
-	//AbilityBonus Lv2
-
-	if (line_num == 1) {
-	    // cout << "skipping first line w/ first field: [" << featName << "]" << endl;
-	    // find the "SlotName" column and skip the line
-	    // I could make this parser digest the header column names and then fetch the cells
-	    // by refering to the name - but that would be just as brittle because there is no
-	    // guarantee that Goblinworks won't make an unannounced change to that also
-	    for (uint idx = 0; idx < fields.size(); ++idx) {
-		if (fields[idx] == "SlotName") {
-		    slotNameColumn = idx;
-		    // just to be aware when things change again
-		    assert(slotNameColumn < 2);
-		    break;
-		}
-	    }
-	    continue;
-	}
-
-	string featName = fields[slotNameColumn];
-
-	// see if something else already added an entity for this (eg, if the entity was listed
-	// as a component for another Entity)
-	EntityDefinition *entity;
-	string featNameFQ = "Feat.";
-	featNameFQ += featName;
-	entity = GetEntity(featNameFQ);
-	if (entity != NULL) {
-	    // printf("%c %2d: %22s -> %d\n", '.', line_num, fields[0].c_str(), (int)fields.size());
-	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
-		log->Log(Logger::Level::Note, "knownParseErrors", "%s:%d Utility Advancement.csv has two rows for Channel Smite...\n", fn.c_str(), line_num);
-	    
-	    } else {
-		assert(entity->ProcessedSpreadsheetDefinition == false);
-	    }
-	} else {
-	    //printf("%c %2d: %22s -> %d\n", '+', line_num, fields[0].c_str(), (int)fields.size());
-
-	    entity = new EntityDefinition();
-	    entity->Name = featName;
-
-	    list<string> typeFields;
-	    typeFields.push_back(t);
-	    typeFields.push_back(featName);
-	    entity->Type = typeHelper->GetType(typeFields);
-	    StoreEntity(featNameFQ, entity);
-	}
-	entity->ProcessedSpreadsheetDefinition = true;
-	    
-	// hack here to keep track of known errors in the data
-	if (entity->Requirements.size() != 0) {
-	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
-		log->Log(Logger::Level::Note, "knownParseErrors", "%s:%d Utility Advancement.csv has two rows for Channel Smite...\n", fn.c_str(), line_num);
-	    } else {
-		// feats are ranked - always ranked - but we won't add the ranks of requirements or
-		// provides until we process them here
-		assert (entity->Requirements.size() == 0);
-	    }
-	}
-
-
-	// notes on gotAtLeastOneXpValue and gotOneNoXpSet
-	// The latest official data from goblin works had a lot of trailing columns of empty data.
-	// I didn't want to add a bunch of bogus entries to the requirements lists and provides
-	// lists so I short circuited if the set had an empty field for XP.  And just to be sure
-	// I wasn't skipping something real, I also added an assertion that should assert if I
-	// find any good rows after a bad row - after all, maybe one day a zero length xp field
-	// may not be a good indicator that everything is blank.
-
-	uint idx;
-	int rank;
-	bool gotAtLeastOneXpValue = false;
-	bool gotOneNoXpSet = false;
-	for (idx = slotNameColumn + 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
-
-	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ][ 13  ]
-	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
-
-	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][ 163 ][ 164 ][ 165 ][ 166 ][ 167 ][ 168 ]
-	    // [indx][name ][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
-	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
-	    // say: idx = 163 and size = 168 - error as there is no element 168 which would be the fith field
-	    if ((fields.size() - idx) < 6) {
-		log->Log(Logger::Level::Warn, "OfficialData",
-					"%s:%d  %s rank %d has incomplete data - skipping...\n",
-					fn.c_str(), line_num, featName.c_str(), rank);
-		continue;
-	    }
-
-	    if (fields[idx].size() > 0) {
-		assert(gotOneNoXpSet == false);
-		gotAtLeastOneXpValue = true;
-	    }
-	    if (gotAtLeastOneXpValue == true && fields[idx].size() < 1) {
-		log->Log(Logger::Level::Warn, "OfficialData",
-					"%s:%d  %s rank %d has incomplete data (no xp) - skipping...\n",
-					fn.c_str(), line_num, featName.c_str(), rank);
-		gotOneNoXpSet = true;
-		continue;
-	    }
-
-	    entity->Requirements.push_back(*(new list<LineItem*>));
-	    entity->Provides.push_back(*(new list<LineItem*>));
-
-	    if (rank == 1) {
-		// we will index into the requirements based on the rank since the first rank
-		// is 1, we need to add an empty/dummy requirement list at rank 0 so that
-		// Requirements[1] gets the first rank's requirements.
-		entity->Requirements.push_back(*(new list<LineItem*>));
-		entity->Provides.push_back(*(new list<LineItem*>));
-	    }
-	    list<LineItem*> *reqs = &(entity->Requirements.back());
-	    list<LineItem*> *pros = &(entity->Provides.back());
-	    
-	    // add the exp requirement
-	    string entityName = "ExperiencePoint";
-	    LineItem *req = new LineItem();
-	    req->Entity = GetEntity(entityName);
-	    if (req->Entity == NULL) {
-		list<string> typeFields;
-		typeFields.push_back(entityName);
-		
-		req->Entity = new EntityDefinition();
-		req->Entity->Name = entityName;
-		req->Entity->Type = typeHelper->GetType(typeFields);
-		StoreEntity(entityName, req->Entity);
-	    }
-	    req->Quantity = atoi(fields[idx].c_str());
-	    reqs->push_back(req);
-
-	    // add the previous rank as a requirement
-	    if (rank > 1) {
-		req = new LineItem(entity, (rank - 1));
-		reqs->push_back(req);
-	    }
-
-	    // add the achievement point
-	    string reqStr = fields[idx+1];
-	    string label = "AchievementPoint";
-	    string errMsg = "";
-	    if (reqStr.size() > 0) {
-		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
-		if (required == NULL) {
-		    log->Log(Logger::Level::Warn, "OfficialData",
-					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
-					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
-		} else {
-		    reqs->push_back(required);
-		}
-	    }
-
-	    // add the feat requirements
-	    reqStr = fields[idx+2];
-	    label = "Feat";
-	    errMsg = "";
-	    if (reqStr.size() > 0) {
-		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
-		if (required == NULL) {
-		    log->Log(Logger::Level::Warn, "OfficialData",
-					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
-					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
-		} else {
-		    reqs->push_back(required);
-		}
-	    }
-
-	    
-	    // add the achievement requirements
-	    // Fighter is listed as both Achievement and Feat
-	    reqStr = fields[idx+3];
-	    label = "Achievement"; // eg, Shield Expert 4 - this is an achievement
-	    //label = "Feat"; // not sure why I had this as a Feat here
-	    errMsg = "";
-	    if (reqStr.size() > 0) {
-		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
-		if (required == NULL) {
-		    log->Log(Logger::Level::Warn, "OfficialData",
-					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
-					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
-		} else {
-		    reqs->push_back(required);
-		}
-	    }
-
-	    // add the ability score requirements
-	    reqStr = fields[idx+4];
-	    label = "AbilityScore";
-	    errMsg = "";
-	    if (reqStr.size() > 0) {
-		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
-		if (required == NULL) {
-		    log->Log(Logger::Level::Warn, "OfficialData",
-					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
-					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
-		} else {
-		    reqs->push_back(required);
-		}
-	    }
-
-	    // add the ability bonus "Provide" node
-	    reqStr = fields[idx+5];
-	    label = "AbilityScore";
-	    errMsg = "";
-	    if (reqStr.size() > 0) {
-		LineItem *provides = ParseRequirementString(reqStr, label, errMsg);
-		if (provides == NULL) {
-		    log->Log(Logger::Level::Warn, "OfficialData",
-					    "%s:%d  failed to parse this %s bonus string: [%s]; err: %s - skipping...\n",
-					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
-		} else {
-		    pros->push_back(provides);
-		}
-	    }
-	    
-	}
-	
-	// for (int idx = 0; idx < fields.size(); ++idx) { cout << fields[idx] << endl; }
-    }
-
-    fin.close();
-
-    return true;
-}
-
 bool OfficialData::TestParseFile(string filepath) {
     // open the file named fn
     // parse dump the data cells to stdout
@@ -617,105 +170,105 @@ bool OfficialData::TestParseFile(string filepath) {
     return true;
 }
 
-
-LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeName, string &errMsg) {
-    // TODO: MEMORY LEAKS HERE
-    // if this function encounters an error (and returns NULL) midway through parsing
-    // a requirement, we will leak the already-created LineItems and Logic entities.
-
-    vector<string> andedGroups = Utils::SplitCommaSeparatedValuesWithQuotedFields(reqStr.c_str());
-    if (andedGroups.size() < 1) {
-	errMsg = "topLevelZero";
+EntityDefinition* OfficialData::GetEntity(string fullyQualifiedName) {
+    map< string, EntityDefinition* >::iterator entityMapEntry;
+    entityMapEntry = Entities.find(fullyQualifiedName);
+    if (entityMapEntry == Entities.end()) {
 	return NULL;
-    }
-
-    vector<string>::iterator groupEntry;
-    list<LineItem*> andedLineItems;
-    for (groupEntry = andedGroups.begin(); groupEntry != andedGroups.end(); ++groupEntry) {
-	if (strstr((*groupEntry).c_str(), " or ")) {
-	    list<string> orEntityLongName = { string("LogicOr") };
-	    EntityDefinition *orEntity = new EntityDefinition();
-	    orEntity->Name = "LogicOr";
-	    orEntity->Type = EntityTypeHelper::Instance()->GetType(orEntityLongName);
-	    orEntity->Requirements.push_back(*(new list<LineItem*>));
-	    
-	    vector<string> orReqs = Utils::SplitDelimitedValues((*groupEntry).c_str(), " or ");
-	    vector<string>::iterator orEntry;
-	    for (orEntry = orReqs.begin(); orEntry != orReqs.end(); ++orEntry) {
-		LineItem *newReq = BuildLineItemFromKeyEqualsVal((*orEntry), entityTypeName);
-		if (newReq == NULL) {
-		    errMsg = "failed to parse 'or' requirement";
-		    return NULL;
-		}
-		orEntity->Requirements[0].push_back(newReq);
-	    }
-	    andedLineItems.push_back(new LineItem(orEntity, 1));
-	    
-	} else {
-	    LineItem *newReq = BuildLineItemFromKeyEqualsVal((*groupEntry), entityTypeName);
-	    if (newReq == NULL) {
-		// ignore empty entries - the given data has some trailing commas
-		// EG: Feat Achievements.csv
-		//    Willpower Bonus=7, Arcane Attack Bonus=7, Power=26,
-		continue;
-		//errMsg = "failed to parse 'and' requirement [";
-		//errMsg += (*groupEntry);
-		//errMsg += "]";
-		//return NULL;
-	    }
-	    andedLineItems.push_back(newReq);
-	}
-    }
-    if (andedLineItems.size() < 0) {
-	errMsg = "failed to parse anything";
-	return NULL;
-    }
-
-    if (andedLineItems.size() == 1) {
-	return andedLineItems.front();
     } else {
-	list<string> andEntityLongName = { string("LogicAnd") };
-	EntityDefinition *andEntity = new EntityDefinition();
-	andEntity->Name = "LogicAnd";
-	andEntity->Type = EntityTypeHelper::Instance()->GetType(andEntityLongName);
-	andEntity->Requirements.push_back(*(new list<LineItem*>));
+	return (*entityMapEntry).second;
+    }
+}
 
-	list<LineItem*>::iterator groupEntry;
-	for (groupEntry = andedLineItems.begin(); groupEntry != andedLineItems.end(); ++groupEntry) {
-	    andEntity->Requirements[0].push_back(*groupEntry);
+void OfficialData::SearchForItemsThatRequire(EntityDefinition* targetEntity) {
+    bool foundOne = false;
+    set<EntityDefinition*> searched;
+    map< string, EntityDefinition* >::iterator tlItr;
+    for (tlItr = Entities.begin(); tlItr != Entities.end(); ++tlItr) {
+	string key = (*tlItr).first;
+	EntityDefinition* entity = (*tlItr).second;
+	if (entity->HasRequirement(targetEntity, searched)) {
+	    // this one is just a cout because it's the requsted output - not logging
+	    cout << key << " / " << entity->Name << " has this as a requirement" << endl;
+	    foundOne = true;
 	}
-	LineItem *group = new LineItem(andEntity, 1);
-	return group;
+    }
+    if (foundOne == false) {
+	cout << "didn't find this as a requirement - searched " << searched.size() << " entities" << endl;
     }
 }
 
+vector<string> OfficialData::SearchForEntitiesMatchingStrings(const char *buf)
+{
+    //     map< string, EntityDefinition*, comp> Entities;
 
-LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityTypeName) {
-    string key, value;
-
-    if (!Utils::SplitKeyValueOnChar(kvp.c_str(), "=", key, value)) {
-	return NULL;
+    vector<string> matchStringsCased = Utils::SplitDelimitedValues(buf, " ");
+    if (matchStringsCased.size() == 0) {
+	// I'm not really returning "matchStringsCased" but just an empty vector
+	return matchStringsCased;
     }
 
-    // Yikes - this one is scary - I can't remember if the type will be underspecified here
-    // eg, will we store Item.Craft.Sword and then just get Item.Sword through this interface?
-    // TODO: Dump all entities and make sure they are all correct...
-    string fqn = entityTypeName;
-    fqn += "." + key;
-    EntityDefinition* entity = GetEntity(fqn);
-    if (entity == NULL) {
-	entity = new EntityDefinition();
-	entity->Name = key;
-	list<string> typeFields;
-	typeFields.push_back(entityTypeName);
-	typeFields.push_back(key);
-	entity->Type = EntityTypeHelper::Instance()->GetType(typeFields);
-	StoreEntity(fqn, entity);
+    vector<string> matchStrings;
+    vector<string>::iterator itr = matchStringsCased.begin();
+    for(; itr != matchStringsCased.end(); ++itr) {
+	matchStrings.push_back(to_lower_copy(*itr));
     }
-    
-    return new LineItem(entity, atof(value.c_str()));
+
+    vector<string>::iterator requiredString = matchStrings.begin();
+    list<string> matchingEntities;
+    int searchCount = 0;
+    for(; requiredString != matchStrings.end(); ++requiredString) {
+	if ((*requiredString).length() == 0) { continue; }
+	if (searchCount == 0) {
+	    map<string, EntityDefinition*>::iterator itr = Entities.begin();
+	    for(; itr != Entities.end(); ++itr) {
+		string entityName = to_lower_copy((*itr).first);		
+		if (entityName.find(*requiredString) != string::npos) {
+		    matchingEntities.push_back((*itr).first);
+		}
+	    }
+	} else {
+	    if (matchingEntities.size() == 0) { break; }
+	    // here we will go through matchingEntities and remove any entry that doesn't match *requiredString
+	    // we can't remove items from a thing we are iterating over so we will make a list of items to
+	    // remove and then remove them all in a separate loop after.
+	    
+	    vector<string> itemsForRemoval;
+	    list<string>::iterator entityEntry = matchingEntities.begin();
+	    for(; entityEntry != matchingEntities.end(); ++entityEntry) {
+		string entityName = to_lower_copy(*entityEntry);
+		if (entityName.find(*requiredString) == string::npos) {
+		    itemsForRemoval.push_back(*entityEntry);
+		}
+	    }
+	    if (itemsForRemoval.size() > 0) {
+		vector<string>::iterator removeMe = itemsForRemoval.begin();
+		for(; removeMe != itemsForRemoval.end(); ++removeMe) {
+		    matchingEntities.remove(*removeMe);
+		}
+	    }
+	}
+	++searchCount;
+    }
+
+    vector<string> retVal;
+    matchingEntities.sort();
+    list<string>::iterator matchingEntry = matchingEntities.begin();
+    for(; matchingEntry != matchingEntities.end(); ++matchingEntry) {
+	retVal.push_back(*matchingEntry);
+    }
+    return retVal;
 }
 
+void OfficialData::Dump() {
+
+    cout << "Have " << Entities.size() << " entities" << endl;
+
+    map<string, EntityDefinition*>::iterator itr;
+    for (itr = Entities.begin(); itr != Entities.end(); ++itr) {
+	cout << *((*itr).second) << endl;
+    }
+}
 
 bool OfficialData::ParseAndStoreCraftingRecipeFile(string fn, bool testRun) {
     return this->ParseAndStoreRecipeFile(fn, testRun, "Craft");
@@ -1006,65 +559,513 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignor
     return true;
 }
 
+bool OfficialData::ParseAndStoreProgressionFile(string fn, bool testRun, string t) {
+    // open the file named fn
+    // parse the data cells
+    // foreach row
+    //    make an entity definition and fill it out
+    //    store the entity in the global entity map by the name
 
-vector<string> OfficialData::SearchForEntitiesMatchingStrings(const char *buf)
-{
-    //     map< string, EntityDefinition*, comp> Entities;
+    // cout << "+++ RUNNING: OfficialData::ParseAndStoreSkillFile(" << fn << ")" << endl;
 
-    vector<string> matchStringsCased = Utils::SplitDelimitedValues(buf, " ");
-    if (matchStringsCased.size() == 0) {
-	// I'm not really returning "matchStringsCased" but just an empty vector
-	return matchStringsCased;
+    EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
+    Logger *log = Logger::Instance();
+
+    ifstream fin(fn.c_str());
+    if (!fin.is_open()) {
+	log->Log(Logger::Level::Error, "", "Failed to read file %s: %s (%d)\n", fn.c_str(), strerror(errno), errno);
+	return false;
     }
+    string line;
+    int line_num = 0;
+    uint slotNameColumn = 0;
+    while(getline(fin, line)) {
+	++line_num;
+	// there is only one line per feat with each line having the data out to the max feat (121 total fields)
+	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
 
-    vector<string> matchStrings;
-    vector<string>::iterator itr = matchStringsCased.begin();
-    for(; itr != matchStringsCased.end(); ++itr) {
-	matchStrings.push_back(to_lower_copy(*itr));
-    }
+	if (fields.size() < 1) {
+	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d is empty.  Skipping...\n", fn.c_str(), line_num);
+	    assert(line_num > 1);
+	    continue;
+	}
+	
+	if (fields[0].size() == 0) {
+	    log->Log(Logger::Level::Warn, "OfficialData", "%s:%d has %d columns but an empty name.  Skipping...\n", fn.c_str(), line_num, fields.size());
+	    assert(line_num > 1);
+	    continue;
+	}
 
-    vector<string>::iterator requiredString = matchStrings.begin();
-    list<string> matchingEntities;
-    int searchCount = 0;
-    for(; requiredString != matchStrings.end(); ++requiredString) {
-	if ((*requiredString).length() == 0) { continue; }
-	if (searchCount == 0) {
-	    map<string, EntityDefinition*>::iterator itr = Entities.begin();
-	    for(; itr != Entities.end(); ++itr) {
-		string entityName = to_lower_copy((*itr).first);		
-		if (entityName.find(*requiredString) != string::npos) {
-		    matchingEntities.push_back((*itr).first);
+	//Index (but only in Points Advancement.csv as of 26 Oct dump)
+	//SlotName
+	//Exp Lv1
+	//Category Lv1
+	//Feat Lv1
+	//Achievement Lv1
+	//AbilityReq Lv1
+	//AbilityBonus Lv1
+	//Exp Lv2
+	//Category Lv2
+	//Feat Lv2
+	//Achievement Lv2
+	//AbilityReq Lv2
+	//AbilityBonus Lv2
+
+	if (line_num == 1) {
+	    // cout << "skipping first line w/ first field: [" << featName << "]" << endl;
+	    // find the "SlotName" column and skip the line
+	    // I could make this parser digest the header column names and then fetch the cells
+	    // by refering to the name - but that would be just as brittle because there is no
+	    // guarantee that Goblinworks won't make an unannounced change to that also
+	    for (uint idx = 0; idx < fields.size(); ++idx) {
+		if (fields[idx] == "SlotName") {
+		    slotNameColumn = idx;
+		    // just to be aware when things change again
+		    assert(slotNameColumn < 2);
+		    break;
 		}
+	    }
+	    continue;
+	}
+
+	string featName = fields[slotNameColumn];
+
+	// see if something else already added an entity for this (eg, if the entity was listed
+	// as a component for another Entity)
+	EntityDefinition *entity;
+	string featNameFQ = "Feat.";
+	featNameFQ += featName;
+	entity = GetEntity(featNameFQ);
+	if (entity != NULL) {
+	    // printf("%c %2d: %22s -> %d\n", '.', line_num, fields[0].c_str(), (int)fields.size());
+	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
+		log->Log(Logger::Level::Note, "knownParseErrors", "%s:%d Utility Advancement.csv has two rows for Channel Smite...\n", fn.c_str(), line_num);
+	    
+	    } else {
+		assert(entity->ProcessedSpreadsheetDefinition == false);
 	    }
 	} else {
-	    if (matchingEntities.size() == 0) { break; }
-	    // here we will go through matchingEntities and remove any entry that doesn't match *requiredString
-	    // we can't remove items from a thing we are iterating over so we will make a list of items to
-	    // remove and then remove them all in a separate loop after.
+	    //printf("%c %2d: %22s -> %d\n", '+', line_num, fields[0].c_str(), (int)fields.size());
+
+	    entity = new EntityDefinition();
+	    entity->Name = featName;
+
+	    list<string> typeFields;
+	    typeFields.push_back(t);
+	    typeFields.push_back(featName);
+	    entity->Type = typeHelper->GetType(typeFields);
+	    StoreEntity(featNameFQ, entity);
+	}
+	entity->ProcessedSpreadsheetDefinition = true;
 	    
-	    vector<string> itemsForRemoval;
-	    list<string>::iterator entityEntry = matchingEntities.begin();
-	    for(; entityEntry != matchingEntities.end(); ++entityEntry) {
-		string entityName = to_lower_copy(*entityEntry);
-		if (entityName.find(*requiredString) == string::npos) {
-		    itemsForRemoval.push_back(*entityEntry);
-		}
-	    }
-	    if (itemsForRemoval.size() > 0) {
-		vector<string>::iterator removeMe = itemsForRemoval.begin();
-		for(; removeMe != itemsForRemoval.end(); ++removeMe) {
-		    matchingEntities.remove(*removeMe);
-		}
+	// hack here to keep track of known errors in the data
+	if (entity->Requirements.size() != 0) {
+	    if (fn == "official_data/Utility Advancement.csv" && featName == "Channel Smite") {
+		log->Log(Logger::Level::Note, "knownParseErrors", "%s:%d Utility Advancement.csv has two rows for Channel Smite...\n", fn.c_str(), line_num);
+	    } else {
+		// feats are ranked - always ranked - but we won't add the ranks of requirements or
+		// provides until we process them here
+		assert (entity->Requirements.size() == 0);
 	    }
 	}
-	++searchCount;
+
+
+	// notes on gotAtLeastOneXpValue and gotOneNoXpSet
+	// The latest official data from goblin works had a lot of trailing columns of empty data.
+	// I didn't want to add a bunch of bogus entries to the requirements lists and provides
+	// lists so I short circuited if the set had an empty field for XP.  And just to be sure
+	// I wasn't skipping something real, I also added an assertion that should assert if I
+	// find any good rows after a bad row - after all, maybe one day a zero length xp field
+	// may not be a good indicator that everything is blank.
+
+	uint idx;
+	int rank;
+	bool gotAtLeastOneXpValue = false;
+	bool gotOneNoXpSet = false;
+	for (idx = slotNameColumn + 1, rank = 1; idx < fields.size(); idx += 6, ++rank) {
+
+	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][  8  ][  9  ][ 10  ][ 11  ][ 12  ][ 13  ]
+	    // [name][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
+
+	    // [  0 ][  1  ][  2  ][  3  ][  4  ][  5  ][  6  ][  7  ][ 163 ][ 164 ][ 165 ][ 166 ][ 167 ][ 168 ]
+	    // [indx][name ][1_exp][1_cat][1_fea][1_ach][1_abi][1_ab+][2_exp][2_cat][2_fea][2_ach][2_abi][2_ab+]
+	    // say: idx = 7 and size = 11 (error).  11(sz) - 7(ix) = 4
+	    // say: idx = 163 and size = 168 - error as there is no element 168 which would be the fith field
+	    if ((fields.size() - idx) < 6) {
+		log->Log(Logger::Level::Warn, "OfficialData",
+					"%s:%d  %s rank %d has incomplete data - skipping...\n",
+					fn.c_str(), line_num, featName.c_str(), rank);
+		continue;
+	    }
+
+	    if (fields[idx].size() > 0) {
+		assert(gotOneNoXpSet == false);
+		gotAtLeastOneXpValue = true;
+	    }
+	    if (gotAtLeastOneXpValue == true && fields[idx].size() < 1) {
+		log->Log(Logger::Level::Warn, "OfficialData",
+					"%s:%d  %s rank %d has incomplete data (no xp) - skipping...\n",
+					fn.c_str(), line_num, featName.c_str(), rank);
+		gotOneNoXpSet = true;
+		continue;
+	    }
+
+	    entity->Requirements.push_back(*(new list<LineItem*>));
+	    entity->Provides.push_back(*(new list<LineItem*>));
+
+	    if (rank == 1) {
+		// we will index into the requirements based on the rank since the first rank
+		// is 1, we need to add an empty/dummy requirement list at rank 0 so that
+		// Requirements[1] gets the first rank's requirements.
+		entity->Requirements.push_back(*(new list<LineItem*>));
+		entity->Provides.push_back(*(new list<LineItem*>));
+	    }
+	    list<LineItem*> *reqs = &(entity->Requirements.back());
+	    list<LineItem*> *pros = &(entity->Provides.back());
+	    
+	    // add the exp requirement
+	    string entityName = "ExperiencePoint";
+	    LineItem *req = new LineItem();
+	    req->Entity = GetEntity(entityName);
+	    if (req->Entity == NULL) {
+		list<string> typeFields;
+		typeFields.push_back(entityName);
+		
+		req->Entity = new EntityDefinition();
+		req->Entity->Name = entityName;
+		req->Entity->Type = typeHelper->GetType(typeFields);
+		StoreEntity(entityName, req->Entity);
+	    }
+	    req->Quantity = atoi(fields[idx].c_str());
+	    reqs->push_back(req);
+
+	    // add the previous rank as a requirement
+	    if (rank > 1) {
+		req = new LineItem(entity, (rank - 1));
+		reqs->push_back(req);
+	    }
+
+	    // add the achievement point
+	    string reqStr = fields[idx+1];
+	    string label = "AchievementPoint";
+	    string errMsg = "";
+	    if (reqStr.size() > 0) {
+		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
+		if (required == NULL) {
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
+		} else {
+		    reqs->push_back(required);
+		}
+	    }
+
+	    // add the feat requirements
+	    reqStr = fields[idx+2];
+	    label = "Feat";
+	    errMsg = "";
+	    if (reqStr.size() > 0) {
+		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
+		if (required == NULL) {
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
+		} else {
+		    reqs->push_back(required);
+		}
+	    }
+
+	    
+	    // add the achievement requirements
+	    // Fighter is listed as both Achievement and Feat
+	    reqStr = fields[idx+3];
+	    label = "Achievement"; // eg, Shield Expert 4 - this is an achievement
+	    //label = "Feat"; // not sure why I had this as a Feat here
+	    errMsg = "";
+	    if (reqStr.size() > 0) {
+		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
+		if (required == NULL) {
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
+		} else {
+		    reqs->push_back(required);
+		}
+	    }
+
+	    // add the ability score requirements
+	    reqStr = fields[idx+4];
+	    label = "AbilityScore";
+	    errMsg = "";
+	    if (reqStr.size() > 0) {
+		LineItem *required = ParseRequirementString(reqStr, label, errMsg);
+		if (required == NULL) {
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s requirement string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
+		} else {
+		    reqs->push_back(required);
+		}
+	    }
+
+	    // add the ability bonus "Provide" node
+	    reqStr = fields[idx+5];
+	    label = "AbilityScore";
+	    errMsg = "";
+	    if (reqStr.size() > 0) {
+		LineItem *provides = ParseRequirementString(reqStr, label, errMsg);
+		if (provides == NULL) {
+		    log->Log(Logger::Level::Warn, "OfficialData",
+					    "%s:%d  failed to parse this %s bonus string: [%s]; err: %s - skipping...\n",
+					    fn.c_str(), line_num, label.c_str(), reqStr.c_str(), errMsg.c_str());
+		} else {
+		    pros->push_back(provides);
+		}
+	    }
+	    
+	}
+	
+	// for (int idx = 0; idx < fields.size(); ++idx) { cout << fields[idx] << endl; }
     }
 
-    vector<string> retVal;
-    matchingEntities.sort();
-    list<string>::iterator matchingEntry = matchingEntities.begin();
-    for(; matchingEntry != matchingEntities.end(); ++matchingEntry) {
-	retVal.push_back(*matchingEntry);
-    }
-    return retVal;
+    fin.close();
+
+    return true;
 }
+
+bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
+    EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();
+    Logger *log = Logger::Instance();
+
+    ifstream fin(fn.c_str());
+    if (!fin.is_open()) {
+	cerr << "failed to read file " << fn << " errno: " << errno << endl;
+	return false;
+    }
+    string line;
+    int line_num = 0;
+    while(getline(fin, line)) {
+	++line_num;
+	if (line_num == 1) {
+	    assert(string("Display Name,Description,Feat Req List") == line);
+	    continue;
+	}
+
+	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+	assert(fields.size() == 3);
+
+	int rank;
+	char *namePart;
+	bool rankInName = Utils::RankInName(fields[0].c_str(), &namePart, rank);
+	assert(rankInName == true);
+	
+	string featNameShort = namePart;
+	delete namePart;
+
+	string featNameFQ = "Feat.";
+	featNameFQ += featNameShort;
+
+	EntityDefinition *entity = GetEntity(featNameFQ);
+	if (entity == NULL) {
+	    entity = new EntityDefinition();
+	    entity->Name = featNameShort;
+
+	    list<string> typeFields;
+	    typeFields.push_back("Feat");
+	    typeFields.push_back(featNameShort);
+	    entity->Type = typeHelper->GetType(typeFields);
+	    StoreEntity(featNameFQ, entity);
+	}
+	entity->ProcessedSpreadsheetDefinition = true;
+
+	if (entity->Requirements.size() == 0) {
+	    // skipping rank zero
+	    entity->Requirements.push_back(*(new list<LineItem*>));
+	    entity->Provides.push_back(*(new list<LineItem*>));
+	}
+	while (entity->Requirements.size() <= (unsigned)rank) {
+	    entity->Requirements.push_back(*(new list<LineItem*>));
+	    entity->Provides.push_back(*(new list<LineItem*>));
+	}
+
+	list<LineItem*> *reqs = &(entity->Requirements[rank]);
+	// we should only ever process the reqs for a given rank of a given entity once
+	assert(reqs->size() == 0);
+
+	// add the previous rank as a requirement
+	if (rank > 1) {
+	    LineItem *req = new LineItem(entity, (rank - 1));
+	    reqs->push_back(req);
+	}
+	
+	string reqStr = fields[2];
+	string label = "Feat";
+	string errMsg = "";
+	if (reqStr.size() > 0) {
+	    LineItem *required = ParseRequirementString(reqStr, label, errMsg);
+	    if (required == NULL) {
+		log->Log(Logger::Level::Warn, "OfficialData", "failed to parse this %s requirement string: [%s]; err: %s\n", label.c_str(), reqStr.c_str(), errMsg.c_str());
+		// cout << "ERROR: failed to parse this " << label << " requirement string: [" << reqStr << "]; err:" << errMsg << endl;
+	    } else {
+		reqs->push_back(required);
+	    }
+	}
+    }
+    fin.close();
+
+    log->Log(Logger::Level::Note, "OfficialData", "parsed %s\n", fn.c_str());
+    return true;
+}
+
+LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeName, string &errMsg) {
+    // TODO: MEMORY LEAKS HERE
+    // if this function encounters an error (and returns NULL) midway through parsing
+    // a requirement, we will leak the already-created LineItems and Logic entities.
+
+    vector<string> andedGroups = Utils::SplitCommaSeparatedValuesWithQuotedFields(reqStr.c_str());
+    if (andedGroups.size() < 1) {
+	errMsg = "topLevelZero";
+	return NULL;
+    }
+
+    vector<string>::iterator groupEntry;
+    list<LineItem*> andedLineItems;
+    for (groupEntry = andedGroups.begin(); groupEntry != andedGroups.end(); ++groupEntry) {
+	if (strstr((*groupEntry).c_str(), " or ")) {
+	    list<string> orEntityLongName = { string("LogicOr") };
+	    EntityDefinition *orEntity = new EntityDefinition();
+	    orEntity->Name = "LogicOr";
+	    orEntity->Type = EntityTypeHelper::Instance()->GetType(orEntityLongName);
+	    orEntity->Requirements.push_back(*(new list<LineItem*>));
+	    
+	    vector<string> orReqs = Utils::SplitDelimitedValues((*groupEntry).c_str(), " or ");
+	    vector<string>::iterator orEntry;
+	    for (orEntry = orReqs.begin(); orEntry != orReqs.end(); ++orEntry) {
+		LineItem *newReq = BuildLineItemFromKeyEqualsVal((*orEntry), entityTypeName);
+		if (newReq == NULL) {
+		    errMsg = "failed to parse 'or' requirement";
+		    return NULL;
+		}
+		orEntity->Requirements[0].push_back(newReq);
+	    }
+	    andedLineItems.push_back(new LineItem(orEntity, 1));
+	    
+	} else {
+	    LineItem *newReq = BuildLineItemFromKeyEqualsVal((*groupEntry), entityTypeName);
+	    if (newReq == NULL) {
+		// ignore empty entries - the given data has some trailing commas
+		// EG: Feat Achievements.csv
+		//    Willpower Bonus=7, Arcane Attack Bonus=7, Power=26,
+		continue;
+		//errMsg = "failed to parse 'and' requirement [";
+		//errMsg += (*groupEntry);
+		//errMsg += "]";
+		//return NULL;
+	    }
+	    andedLineItems.push_back(newReq);
+	}
+    }
+    if (andedLineItems.size() < 0) {
+	errMsg = "failed to parse anything";
+	return NULL;
+    }
+
+    if (andedLineItems.size() == 1) {
+	return andedLineItems.front();
+    } else {
+	list<string> andEntityLongName = { string("LogicAnd") };
+	EntityDefinition *andEntity = new EntityDefinition();
+	andEntity->Name = "LogicAnd";
+	andEntity->Type = EntityTypeHelper::Instance()->GetType(andEntityLongName);
+	andEntity->Requirements.push_back(*(new list<LineItem*>));
+
+	list<LineItem*>::iterator groupEntry;
+	for (groupEntry = andedLineItems.begin(); groupEntry != andedLineItems.end(); ++groupEntry) {
+	    andEntity->Requirements[0].push_back(*groupEntry);
+	}
+	LineItem *group = new LineItem(andEntity, 1);
+	return group;
+    }
+}
+
+LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityTypeName) {
+    string key, value;
+
+    if (!Utils::SplitKeyValueOnChar(kvp.c_str(), "=", key, value)) {
+	return NULL;
+    }
+
+    // Yikes - this one is scary - I can't remember if the type will be underspecified here
+    // eg, will we store Item.Craft.Sword and then just get Item.Sword through this interface?
+    // TODO: Dump all entities and make sure they are all correct...
+    string fqn = entityTypeName;
+    fqn += "." + key;
+    EntityDefinition* entity = GetEntity(fqn);
+    if (entity == NULL) {
+	entity = new EntityDefinition();
+	entity->Name = key;
+	list<string> typeFields;
+	typeFields.push_back(entityTypeName);
+	typeFields.push_back(key);
+	entity->Type = EntityTypeHelper::Instance()->GetType(typeFields);
+	StoreEntity(fqn, entity);
+    }
+    
+    return new LineItem(entity, atof(value.c_str()));
+}
+
+bool OfficialData::StoreEntity(string fullyQualifiedName, EntityDefinition *entity) {
+    map< string, EntityDefinition* >::iterator entityMapEntry;
+    entityMapEntry = Entities.find(fullyQualifiedName);
+    if (entityMapEntry == Entities.end()) {
+	Entities[fullyQualifiedName] = entity;
+	return true;
+    } else {
+	bool alreadyExists = true;
+	assert(alreadyExists == false);
+	return false;
+    }
+    return false;
+}
+
+bool OfficialData::ParseAndStoreCrowdforgedRecipeDataFile(string fn, bool testRun) {
+    Logger *log = Logger::Instance();
+    
+    ifstream fin(fn.c_str());
+    if (!fin.is_open()) {
+	cerr << "failed to read file " << fn << " errno: " << errno << endl;
+	return false;
+    }
+    string line;
+    int line_num = 0;
+    while(getline(fin, line)) {
+	++line_num;
+	if (line_num == 1) {
+	    assert(string("Skill,Rank,Recipe Name,Qty Produced") == line);
+	    continue;
+	}
+
+	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
+	assert(fields.size() == 4);
+	
+	string itemName = fields[2];
+	EntityDefinition *entity = GetEntity("Item." + itemName);
+	if (entity == NULL) {
+	    bool foundEntity = (entity != NULL);
+	    log->Log(Logger::Level::Error, "", "Can't find %s\n", itemName.c_str());
+	    assert(foundEntity == true);
+	}
+
+	if (fields[3].size() > 0) {
+	    int thirdPartyValue = atoi(fields[3].c_str());
+	    if (thirdPartyValue != entity->CreationIncrement) {
+		log->Log(Logger::Level::Note, "OfficialData", "%s has official Qty %d; UserRecorded Qty %d\n", itemName.c_str(), entity->CreationIncrement, thirdPartyValue);
+	    }
+	}
+    }
+    fin.close();
+    log->Log(Logger::Level::Note, "OfficialData", "parsed %s\n", fn.c_str()); 
+    return true;
+}
+
+

@@ -1,9 +1,6 @@
 #ifndef OFFICIALDATA_H
 #define OFFICIALDATA_H
 
-#include <map>
-#include <string>
-#include <strings.h>
 #include "EntityDefinition.h"
 
 class OfficialData;
@@ -14,11 +11,11 @@ class OfficialData {
  public:
     static OfficialData* Instance();
     int ProcessSpreadsheetDir(string dirname);
+    bool TestParseFile(string fn);
     EntityDefinition* GetEntity(string name);
-    void Dump();
     void SearchForItemsThatRequire(EntityDefinition* entity);
     vector<string> SearchForEntitiesMatchingStrings(const char*);
-    bool TestParseFile(string fn);
+    void Dump();
 
  private:
     OfficialData();
