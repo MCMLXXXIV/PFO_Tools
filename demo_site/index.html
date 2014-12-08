@@ -1,21 +1,24 @@
 <html>
 <head>
-  <!-- 
-  <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
-  <script src="//code.jquery.com/ui/1.11.2/jquery-ui.min.js"></script>
-  -->
   <link href="jquery-ui-1.11.2.custom/jquery-ui.css" rel="stylesheet">
   <script src="jquery-ui-1.11.2.custom/external/jquery/jquery.js"></script>
   <script src="jquery-ui-1.11.2.custom/jquery-ui.js"></script>
-
 </head>
 <body>
 <h1>Pathfinder Online "Official Data" Viewer</h1>
 
+<form id='itemSelect'>
 <label for="autocomplete">Select an Entity: </label>
-<input id="autocomplete">
+<input id="autocomplete" name='item'>
+</form>
+
+<div id='planDiv'>
+</div>
 
 <script type="text/javascript">
+
+  var plan;
+
   $('#autocomplete').autocomplete({
       source: function(request, response) {
           $.ajax({
@@ -31,6 +34,24 @@
           });
       },
       minLength: 1
+  });
+
+  $('#itemSelect').submit(function() {
+     $.ajax({
+        url: 'plan',
+        type: 'POST',
+        dataType: 'json',
+        data: $('#itemSelect').serialize(),
+        success: function(data) {
+           plan = data;
+           $('<pre>').text(data[0]['plainText']).appendTo('#planDiv');
+        }
+     });
+     return false;
+  });
+
+  $(function() {
+     // handler for .ready() called
   });
 </script>
 

@@ -227,6 +227,12 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
     }
 
+    if (strncmp("/plan", url, strlen("/plan")) == 0) { 
+	string result = Planners::CreatePlanForItemGoalForWeb(conInfo->Buffer);
+
+	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
+    }
+
     char buffer[1024];
     snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
     return SendPage(connection, buffer, MHD_HTTP_OK);

@@ -40,6 +40,11 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
     return plan;
 }
 
+string Planners::CreatePlanForItemGoalForWeb(const char *input) {	
+    return "[ { \"plainText\": \"foobar\nAnd hey!\" } ]";
+}
+
+
 Gate* Planners::GetPlanStep(LineItem *req, 
 			    Supply &bank,
 			    TrackedResources &trackedResources,
