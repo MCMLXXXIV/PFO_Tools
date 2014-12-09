@@ -22,7 +22,7 @@
   $('#autocomplete').autocomplete({
       source: function(request, response) {
           $.ajax({
-              url: 'entities',
+              url: '/entities',
               type: 'POST',
               dataType: 'json',
               data: { search: request.term },
@@ -37,14 +37,19 @@
   });
 
   $('#itemSelect').submit(function() {
+     var postData = { Item: $("input[name='item']").val(), Store: 'default', Tracked: 'default' };
      $.ajax({
-        url: 'plan',
+        url: '/plan',
         type: 'POST',
+        data: postData,
         dataType: 'json',
-        data: $('#itemSelect').serialize(),
         success: function(data) {
            plan = data;
-           $('<pre>').text(data[0]['plainText']).appendTo('#planDiv');
+           $('<br />').appendTo('#planDiv');
+           $('<span></span>').html('some span: ' + data[0]['plainText']).appendTo('#planDiv');
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+           console.log("Ajax error: " + textStatus + "; " + errorThrown);
         }
      });
      return false;

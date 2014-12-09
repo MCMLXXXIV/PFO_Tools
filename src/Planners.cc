@@ -2,6 +2,8 @@
 #include <cmath>
 #include <cassert>
 #include <cstring>
+#include <ctime>
+
 
 #include "Planners.h"
 #include "EntityTypeHelper.h"
@@ -41,7 +43,15 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
 }
 
 string Planners::CreatePlanForItemGoalForWeb(const char *input) {	
-    return "[ { \"plainText\": \"foobar\nAnd hey!\" } ]";
+    time_t now = time(NULL);
+    struct tm * timeinfo;
+    timeinfo = localtime(&now);
+
+    char timebuf[1024];
+    strftime(timebuf, 1023, "%Y%m%d_%H%M%S", timeinfo);
+    char buf[1024];
+    snprintf(buf, 1023, "[ { \"plainText\": \"%s\" } ]", timebuf);
+    return buf;
 }
 
 

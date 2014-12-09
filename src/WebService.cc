@@ -229,6 +229,7 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 
     if (strncmp("/plan", url, strlen("/plan")) == 0) { 
 	string result = Planners::CreatePlanForItemGoalForWeb(conInfo->Buffer);
+	printf("returning for plan: %s\n", result.c_str());
 
 	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
     }
