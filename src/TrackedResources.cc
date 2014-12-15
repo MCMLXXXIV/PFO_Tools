@@ -1,5 +1,6 @@
 #include "TrackedResources.h"
 #include "EntityTypeHelper.h"
+#include "OfficialData.h"
 #include "Log.h"
 
 #include <iostream>
@@ -72,4 +73,31 @@ void TrackedResources::DumpTrackedResources() {
     for (; itr != NotTrackedByInternalTypeKey.end(); ++itr) {
 	cout << (*itr).first << endl;
     }
+}
+
+TrackedResources* TrackedResources::Deserialize(const char *buf) {
+    TrackedResources *retVal = new TrackedResources();
+
+    list<short*> trackedTypes;
+
+    list<string> typeStringName;
+    typeStringName.clear();
+    typeStringName.push_back("Item");
+    trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+    typeStringName.clear();
+    typeStringName.push_back("Feat");
+    trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+    typeStringName.clear();
+    typeStringName.push_back("Time");
+    trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+    typeStringName.clear();
+    typeStringName.push_back("ExperiencePoint");
+    trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+    retVal->SetTracked(trackedTypes);
+
+    return retVal;
 }

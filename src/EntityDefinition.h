@@ -16,6 +16,7 @@ class EntityDefinition {
 
  public:
     // EntityDefinition();
+    static string SerializeJson(EntityDefinition *entity);
     static string Dump(const EntityDefinition &item, double quantity);
     bool HasRequirement(EntityDefinition* targetEntity, set<EntityDefinition*> &searched);
 

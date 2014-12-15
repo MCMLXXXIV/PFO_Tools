@@ -153,8 +153,7 @@ int main(int argc, char **argv) {
 
     Cost cost;
     Supply remainder;
-    //Plan *plan =
-    Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
+    Plan *plan = Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
 
     cout << endl;
     cout << "Cost:" << endl;
@@ -165,8 +164,11 @@ int main(int argc, char **argv) {
     bank.Dump();
     cout << endl;
 
+    cout << Plan::SerializeJson(plan);
     cout << endl;
+
     cout << EntityDefinition::Dump(*entity, 1.0) << endl; return 0;
+
     return 0;
 }
 
@@ -292,7 +294,7 @@ void GetPlanForItems(string itemsArg) {
 	    assert(abiEntity != NULL);
 	    bank.Deposit(new LineItem(abiEntity, 10.0));
 	}
-	Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
+	Plan *plan = Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
 	
 	cout << endl;
 	cout << "Cost:" << endl;
@@ -301,6 +303,16 @@ void GetPlanForItems(string itemsArg) {
 	
 	cout << "Final Supply:" << endl;
 	bank.Dump();
+	cout << endl;
+
+	string retVal = "[ { ";
+	retVal += "\"Item\": \"" + entity->Name + "\", ";
+	retVal += "\"Bank\": " + Supply::SerializeJson(&bank) + ", ";
+	retVal += "\"Cost\": " + Cost::SerializeJson(&cost) + ", ";
+	retVal += "\"Plan\": " + Plan::SerializeJson(plan);
+	retVal += " } ]";
+	cout << retVal;
+
 	cout << endl;
     } else {
 	cout << "haven't implemented this feature for multiple items" << endl;	

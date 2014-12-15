@@ -15,15 +15,18 @@ class Cost {
     void Add(string msg);
     void Dump();
 
+    static string SerializeJson(Cost *cost);
+
  private:
     void Add(LineItem *item, string msg, int level);
     void Dump(int);
 
-    list<string> NonAggregateCosts;
-    map<short, Cost*> SubNodes;
     short *Type;
-    list<string> Notes;
     double Sum;
+    map<short, Cost*> SubNodes;
+    list<string> Notes;
+
+    list<string> NonAggregateCosts;
 };
 
 #endif

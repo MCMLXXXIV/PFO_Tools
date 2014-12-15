@@ -7,14 +7,15 @@
 
 using namespace std;
 
-class Gate : public LineItem
+class Gate
 {
  public:
-    Gate() {};
+    Gate() { Item = NULL; };
     Gate(LineItem *item);
     Gate(bool isLeaf, bool isBankFilled, LineItem *item);
     list<Gate*> GateTree;
     void SetIsOrGate(bool val);
+    static string SerializeJson(Gate *gate);
 
  private:
     bool IsOrGate;

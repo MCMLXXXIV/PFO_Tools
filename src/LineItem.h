@@ -14,6 +14,8 @@ class LineItem {
     void Dump();
     string Describe(LineItem *parent);
 
+    static string SerializeJson(LineItem *lineItem);
+
     EntityDefinition* Entity;
     double Quantity;
 };

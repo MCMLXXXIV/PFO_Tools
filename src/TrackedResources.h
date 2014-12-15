@@ -12,7 +12,7 @@ class TrackedResources {
     void SetTracked(list<short*> tracked);
     bool IsTracked(short *type); // short array terminated by 0 val
     void DumpTrackedResources();
-    static TrackedResources* Deserialize(const char*) { return NULL; };
+    static TrackedResources* Deserialize(const char*);
 
  private:
     map<string, bool> TrackedByInternalTypeKey;

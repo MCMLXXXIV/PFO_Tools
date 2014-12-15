@@ -112,3 +112,49 @@ void Cost::Dump(int level) {
 	cout << indent << (*msgEntry) << endl; 
     }	
 }
+
+string Cost::SerializeJson(Cost *cost) {
+    // I'm not super happy with the way this ended up - it seems like it could be clearer.
+    // This function is called recursively.  It always returns a JSON array.  If the current
+    // node (cost) has children then it will be an array of Costs (this class).  If the
+    // current node has no children, it will return an array of strings - which are intended
+    // to be the details of the cost.  IE, "10 Coal for 1 of Steel Blanks".
+
+    if (cost == NULL) { return "[]"; }
+
+    string retVal = "[ ";
+
+    if (cost->SubNodes.size() < 1) {
+	 bool addSep = false;
+	 list<string>::iterator msgEntry = cost->Notes.begin();
+	 for (; msgEntry != cost->Notes.end(); ++msgEntry) {
+	     if (addSep) { retVal += ", "; } else { addSep = true; }
+	     retVal += "\"" + *msgEntry + "\"";
+	 }
+    } else {
+	bool addSep = false;
+
+	EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
+	map<short, Cost*>::iterator itr = cost->SubNodes.begin();
+	for (; itr != cost->SubNodes.end(); ++itr) {
+	    Cost *child = (*itr).second;
+	    
+	    if (addSep) { retVal += ", "; } else { addSep = true; }
+	    list<string> typeList = eTypeHelper->GetType(child->Type);
+	    string childName = typeList.back();
+	    
+	    retVal += "{ \"Name\": \"" + childName + "\", \"Quantity\": " + to_string(child->Sum);
+	    
+	    if (child->SubNodes.size() > 0) {
+		retVal += ", \"Children\": ";
+	    } else {
+		retVal += ", \"Detail\": ";
+	    }
+	    retVal += SerializeJson(child);
+	    retVal += " }";
+	}
+    }
+
+    retVal += " ]";
+    return retVal;
+}

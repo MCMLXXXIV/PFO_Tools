@@ -15,7 +15,8 @@ class Supply {
     double Withdrawal(LineItem *item);
     void Deposit(LineItem *item);
     void Dump();
-    static Supply* Deserialize(const char*) { return NULL; };
+    static Supply* Deserialize(const char*);
+    static string SerializeJson(Supply *supply);
 };
 
 

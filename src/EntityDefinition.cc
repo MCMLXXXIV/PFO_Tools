@@ -22,7 +22,14 @@ ostream &operator<<(ostream &os, const EntityDefinition &item) {
     return os;
 }
 
+string EntityDefinition::SerializeJson(EntityDefinition *entity) {
+    if (entity == NULL) { return ""; }
+    string retVal = "{ \"Name\": ";
+    retVal += "\"" + entity->Name + "\"";
+    retVal += " }";
 
+    return retVal;
+}
 
 string EntityDefinition::Dump(const EntityDefinition &item, double quantity) {
     // return Dump(item, "", -1.0);

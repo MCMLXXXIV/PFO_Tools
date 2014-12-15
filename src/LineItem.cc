@@ -48,3 +48,15 @@ string LineItem::Describe(LineItem *parent) {
     }
     return retVal;
 }
+
+string LineItem::SerializeJson(LineItem *lineItem) {
+    if (lineItem == NULL) { return "{}"; }
+
+    string retVal = "{ \"Name\": ";
+    retVal += "\"" + lineItem->Entity->Name + "\"";
+    retVal += ", \"Quantity\": ";
+    retVal += to_string(lineItem->Quantity);
+    retVal += " }";
+
+    return retVal;
+}

@@ -33,7 +33,7 @@ $(OBJS): | $(ODIR)
 
 $(ODIR)/LineItem.o :           $(patsubst %,$(SDIR)/%,LineItem.h)
 $(ODIR)/OfficialData.o :       $(patsubst %,$(SDIR)/%,OfficialData.h EntityDefinition.h LineItem.h Utils.h Log.h)
-$(ODIR)/Supply.o :             $(patsubst %,$(SDIR)/%,Supply.h)
+$(ODIR)/Supply.o :             $(patsubst %,$(SDIR)/%,Supply.h OfficialData.h)
 $(ODIR)/TrackedResources.o :   $(patsubst %,$(SDIR)/%,TrackedResources.h Log.h)
 $(ODIR)/Cost.o :               $(patsubst %,$(SDIR)/%,Cost.h)
 $(ODIR)/Plan.o :               $(patsubst %,$(SDIR)/%,Plan.h)

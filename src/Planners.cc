@@ -13,6 +13,7 @@
 #include "Cost.h"
 #include "Plan.h"
 #include "Log.h"
+#include "OfficialData.h"
 
 using namespace std;
 
@@ -32,26 +33,45 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
     int callCount = 0;
     int maxDepth = 0;
 
-    Plan *plan = new Plan();
     Gate *gate = GetPlanStep(goal, bank, trackedResources, cost, false, NULL, 1, maxDepth, callCount);
 
+    Plan *plan = new Plan();
     plan->GateHead.GateTree.push_back(gate);
-
     plan->RecursionCallCount = callCount;
     plan->RecursionMaxDepth = maxDepth;
     return plan;
 }
 
-string Planners::CreatePlanForItemGoalForWeb(const char *input, Supply *store, TrackedResources *tracked) {	
+string Planners::CreatePlanForItemGoalForWeb(const char *itemName, Supply *store, TrackedResources *tracked) {	
     time_t now = time(NULL);
     struct tm * timeinfo;
     timeinfo = localtime(&now);
 
     char timebuf[1024];
     strftime(timebuf, 1023, "%Y%m%d_%H%M%S", timeinfo);
-    char buf[1024];
-    snprintf(buf, 1023, "[ { \"plainText\": \"%s\" } ]", timebuf);
-    return buf;
+
+    // EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
+
+    EntityDefinition *entity = OfficialData::Instance()->GetEntity(itemName);
+    if (entity == NULL) {
+	char buf[1024];
+	snprintf(buf, 1023, "[ { \"plainText\": \"%s\", \"ItemDoesNotExist\": \"%s\" } ]", timebuf, itemName);
+	return buf;
+    }
+
+    LineItem *item = new LineItem(entity, 1.0);
+
+    Cost cost;
+    Plan *plan = CreatePlanForItemsGoal(item, *store, *tracked, cost);
+
+    string retVal = "[ { \"plainText\": \"" + string(timebuf) + "\", ";
+    retVal += "\"Item\": \"" + string(itemName) + "\", ";
+    retVal += "\"Bank\": " + Supply::SerializeJson(store) + ", ";
+    retVal += "\"Cost\": " + Cost::SerializeJson(&cost) + ", ";
+    retVal += "\"Plan\": " + Plan::SerializeJson(plan);
+    retVal += " } ]";
+
+    return retVal.c_str();
 }
 
 
@@ -233,8 +253,8 @@ Gate* Planners::GetPlanStep(LineItem *req,
     }
 
     log->Log(Logger::Level::Note, "Planners",
-	     "%shandled %s of %s with %d new gates\n",
-	     indent, quantityString, req->Entity->Name.c_str(), newGates);
+	     "%shandled %s of %s with %d new gates (%lu)\n",
+	     indent, quantityString, req->Entity->Name.c_str(), newGates, (unsigned long)gate);
     return gate;
 
 }

@@ -13,6 +13,8 @@ class Plan {
     Gate GateHead;
     int RecursionCallCount;
     int RecursionMaxDepth;
+
+    static string SerializeJson(Plan *plan);
 };
 
 #endif

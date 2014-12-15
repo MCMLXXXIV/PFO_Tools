@@ -2,6 +2,7 @@
 #include "EntityTypeHelper.h"
 #include "EntityDefinition.h"
 #include "LineItem.h"
+#include "OfficialData.h"
 
 double Supply::Withdrawal(LineItem *item) {
     // rank zero of a feat is invariably free - I think it's default so it should be considered
@@ -87,4 +88,50 @@ void Supply::Dump() {
 	(*itr).second->Dump();
 
     }
+}
+
+Supply* Supply::Deserialize(const char *buf) {
+
+    Supply *retVal = new Supply();
+    
+    // add default stats to bank
+    //
+    // N:AbilityScore.Constitution; P:0; C:0; ID:4.4
+    // N:AbilityScore.Dexterity; P:0; C:0; ID:4.3
+    // N:AbilityScore.Intelligence; P:0; C:0; ID:4.1
+    // N:AbilityScore.Personality; P:0; C:0; ID:4.2
+    // N:AbilityScore.Strength; P:0; C:0; ID:4.5
+    // N:AbilityScore.Wisdom; P:0; C:0; ID:4.6
+    set<string> abilityNames = {
+	"Constitution",
+	"Dexterity",
+	"Intelligence",
+	"Personality",
+	"Strength",
+	"Wisdom"
+    };
+    
+    set<string>::iterator abilityItem;
+    for (abilityItem = abilityNames.begin(); abilityItem != abilityNames.end(); ++abilityItem) {
+	string entityName = "AbilityScore." + (*abilityItem);
+	EntityDefinition *abiEntity = OfficialData::Instance()->GetEntity(entityName);
+	assert(abiEntity != NULL);
+	retVal->Deposit(new LineItem(abiEntity, 10.0));
+    }
+    
+    return retVal;
+}
+
+string Supply::SerializeJson(Supply *supply) {
+    if (supply == NULL) { return "[]"; }
+
+    string retVal = "[";
+    bool addSep = false;
+    map<string, LineItem*>::iterator itr = supply->Items.begin();
+    for (; itr != supply->Items.end(); ++itr) {
+	if (addSep) { retVal += ", "; } else { addSep = true; }
+	retVal += LineItem::SerializeJson((*itr).second);
+    }
+    retVal += " ]";
+    return retVal;
 }
