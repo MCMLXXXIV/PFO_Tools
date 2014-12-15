@@ -42,7 +42,7 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
     return plan;
 }
 
-string Planners::CreatePlanForItemGoalForWeb(const char *input) {	
+string Planners::CreatePlanForItemGoalForWeb(const char *input, Supply *store, TrackedResources *tracked) {	
     time_t now = time(NULL);
     struct tm * timeinfo;
     timeinfo = localtime(&now);

@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <map>
 
 #include <boost/filesystem.hpp>
 
@@ -34,16 +35,20 @@
 #define GET             0
 #define POST            1
 
+// arrrg.  I don't know the right way to handle the fact that the microhttpd is c and the rest
+// of my code is c++.  I was trying to stay c-ish in this file (even that felt wrong) but as I
+// got to handling the post data, I realize that I really need a map of key-values.  Now I feel
+// even more dirty.
+
 
 static unsigned int nr_of_clients = 0;
 
 struct connectionInfo
 {
     int ConnectionType;
-    char *Buffer;
-    int BufferContentLength;
-    ulong BufferSize;
-    int PostTooLarge;
+    map<string, string> *PostData;
+    unsigned PostDataSize;
+    int PostHandlingError;
     struct MHD_PostProcessor *PostProcessor;
 };
 
@@ -138,48 +143,56 @@ static int PostIterator(void *coninfo_cls, enum MHD_ValueKind kind, const char *
 {
     struct connectionInfo *conInfo = static_cast<connectionInfo*>(coninfo_cls);
 
-    if (conInfo->PostTooLarge == 0) {
-	if (size > 0) {
-	    if (size + conInfo->BufferContentLength > conInfo->BufferSize) {
-		ulong newSize = conInfo->BufferSize + POSTBUFFERSIZE;
-		if (newSize > MAXPOSTSIZE) {
-		    printf("Too much post data (%lu bytes; max: %d) - will not process this post\n", newSize, MAXPOSTSIZE);
-		    conInfo->PostTooLarge = 1;
-		    free(conInfo->Buffer);
-		    conInfo->Buffer = NULL;
-		    conInfo->BufferSize = 0;
-		    conInfo->BufferContentLength = 0;
-		} else {
-		    if (conInfo->Buffer == NULL) {
-			conInfo->Buffer = (char*)malloc(sizeof(char) * newSize);
-			memset(conInfo->Buffer, '\0', newSize);
-		    } else {
-			conInfo->Buffer = (char*)realloc(conInfo->Buffer, sizeof(char) * newSize);
-		    }
-		    assert(conInfo->Buffer != NULL);
-		    conInfo->BufferSize = newSize;
-		}
-	    }
-	    if (conInfo->PostTooLarge == 0) {
-		memcpy(conInfo->Buffer + conInfo->BufferContentLength, data, conInfo->BufferSize - conInfo->BufferContentLength);
-		conInfo->BufferContentLength += size;
-	    }
-	}
-    } else {
-	printf("Post already too large - skipping this portion too\n");
-    }
-
-    char buf[POSTBUFFERSIZE + 1];
-    memset(buf, '\0', sizeof(buf));
-    memcpy(buf, data, sizeof(buf));
-
     printf("key:[%s]; ", (key != NULL ? key : "NULL"));
     printf("filename: [%s]; ", (filename != NULL ? filename : "NULL"));
     printf("content_type: [%s]; ", (content_type != NULL ? content_type : "NULL"));
     printf("transfer_encoding: [%s]; ", (transfer_encoding != NULL ? transfer_encoding : "NULL"));
-    printf("data: [%s]; ", (*data != '\0' ? buf : "NULL"));
+    printf("data: [%s]; ", (*data != '\0' ? data : "NULL"));
     printf("offset: %lu; ", off);
     printf("size: %lu;\n", size);
+
+    if (conInfo->PostHandlingError == 0) {
+	if (size > 0) {
+	    assert (conInfo->PostData != NULL);
+
+	    string keyStr = key;
+	    string valStr = data;
+	    
+	    ulong additionalBytes = keyStr.size() + valStr.size();
+	    ulong newSize = conInfo->PostDataSize + additionalBytes;
+	    
+	    if (newSize > MAXPOSTSIZE) {
+		printf("Too much post data (%lu bytes; max: %d) - will not process this post\n", newSize, MAXPOSTSIZE);
+		conInfo->PostHandlingError = 1;
+		delete(conInfo->PostData);
+		conInfo->PostData = NULL;
+		conInfo->PostDataSize = 0;
+	    } else {
+		printf("adding map[%s] = '%s'\n", keyStr.c_str(), valStr.c_str());
+		conInfo->PostDataSize = newSize;
+		if ((conInfo->PostData)->find(keyStr) == (conInfo->PostData)->end()) {
+		    (*(conInfo->PostData))[keyStr] = valStr;
+		} else {
+		    if (off > 0) {
+			// add more data to the value
+			string newVal = ((conInfo->PostData)->find(keyStr))->second;
+			newVal += valStr;
+			(*(conInfo->PostData))[keyStr] = newVal;
+		    } else {
+			printf("WARNING: we got another value for the key %s - I don't handle this right now so returning an error\n", key);
+			conInfo->PostHandlingError = 1;
+			delete(conInfo->PostData);
+			conInfo->PostData = NULL;
+			conInfo->PostDataSize = 0;
+		    }
+		}
+	    }
+	} else {
+	    printf("PostIterator called with less than one bytes\n");
+	}
+    } else {
+	printf("Post already too large - skipping this portion too\n");
+    }
 
     return MHD_YES;
 }
@@ -197,23 +210,35 @@ static void RequestCompleted(void *cls, struct MHD_Connection *con, void **con_c
 	    MHD_destroy_post_processor(conInfo->PostProcessor);
 	    nr_of_clients--;
 	}
-	if (conInfo->Buffer != NULL) {
-	    free(conInfo->Buffer);
+	if (conInfo->PostData != NULL) {
+	    delete conInfo->PostData;
 	}
     }
-
     delete conInfo;
     *con_cls = NULL;
 }
 
 static int HandlePost(struct MHD_Connection *connection, const char *url, struct connectionInfo *conInfo)
 {
-    printf("HandlePost(%s, %s)\n", url, conInfo->Buffer);
+    printf("HandlePost(%s)\n", url);
     if (strncmp("/entities", url, strlen("/entities")) == 0) {
-	OfficialData* rulesGraph = OfficialData::Instance();
-	vector<string> entities = rulesGraph->SearchForEntitiesMatchingStrings(conInfo->Buffer);
+	// search
+	map<string,string>::iterator keyValEntry = conInfo->PostData->find("search");
+	if (keyValEntry == conInfo->PostData->end()) {
+	    printf("bad search - no value for key 'search'\n");
+	    //  TODO send error page here
+	    char buffer[1024];
+	    snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
+	    return SendPage(connection, buffer, MHD_HTTP_OK);
+	}
+	
+	string val = keyValEntry->second;
+	printf("looking for matches to: '%s'\n", val.c_str());
 
-	printf("Got %lu entities from \"%s\"\n", entities.size(), conInfo->Buffer);
+	OfficialData* rulesGraph = OfficialData::Instance();
+	vector<string> entities = rulesGraph->SearchForEntitiesMatchingStrings(val.c_str());
+
+	printf("Got %lu entities from \"%s\"\n", entities.size(), val.c_str());
 
 	int addSep = 0;
 	string result = "[";
@@ -227,8 +252,35 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
     }
 
-    if (strncmp("/plan", url, strlen("/plan")) == 0) { 
-	string result = Planners::CreatePlanForItemGoalForWeb(conInfo->Buffer);
+    if (strncmp("/plan", url, strlen("/plan")) == 0) {
+	map<string,string>::iterator keyValEntry = conInfo->PostData->find("Item");
+	if (keyValEntry == conInfo->PostData->end()) {
+	    printf("bad plan request - no value for key 'Item'\n");
+	    //  TODO send error page here
+	    char buffer[1024];
+	    snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
+	    return SendPage(connection, buffer, MHD_HTTP_OK);
+	}
+	string val = keyValEntry->second;
+
+	keyValEntry = conInfo->PostData->find("Store");
+	string storeSerialized = "default";
+	if (keyValEntry != conInfo->PostData->end()) {
+	    storeSerialized = keyValEntry->second;
+	}
+
+	Supply *store = Supply::Deserialize(storeSerialized.c_str());
+
+	keyValEntry = conInfo->PostData->find("Tracked");
+	string trackedSerialized = "default";
+	if (keyValEntry != conInfo->PostData->end()) {
+	    trackedSerialized = keyValEntry->second;
+	}
+
+	TrackedResources *tracked = TrackedResources::Deserialize(trackedSerialized.c_str());
+
+	// returns json
+	string result = Planners::CreatePlanForItemGoalForWeb(val.c_str(), store, tracked);
 	printf("returning for plan: %s\n", result.c_str());
 
 	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
@@ -261,10 +313,9 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 	if (NULL == conInfo) {
 	    return MHD_NO;
 	}
-	conInfo->Buffer = NULL;
-	conInfo->BufferSize = 0;
-	conInfo->BufferContentLength = 0;
-	conInfo->PostTooLarge = 0;
+	conInfo->PostData = new map<string,string>();
+	conInfo->PostDataSize = 0;
+	conInfo->PostHandlingError = 0;
 
 	if (0 == strcmp(method, "POST")) {
 	    conInfo->PostProcessor = MHD_create_post_processor(connection, POSTBUFFERSIZE, PostIterator, (void*)conInfo);
@@ -299,7 +350,7 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 	} else {
 	    printf("AnswerToConnection - replying to POST\n");
 	    struct connectionInfo *conInfo = static_cast<connectionInfo*>(*con_cls);
-	    printf("post body %d bytes: %s\n", conInfo->BufferContentLength, conInfo->BufferContentLength > 0 ? conInfo->Buffer : "NULL");
+	    printf("post body %d bytes\n", conInfo->PostDataSize);
 	    return HandlePost(connection, url, conInfo);
 	}
     }
