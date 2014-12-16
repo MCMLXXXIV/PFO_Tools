@@ -56,15 +56,21 @@ more self-contained.
 TODO
 ====
 
+- [ ] Add unaggregated lines to json and webpage
+- [ ] Add "Prefer" to planner - I think all ORs are around ability scores or achievement points - so set a priority list for those two sets to resolve ORs
+- [ ] Add ID to json serialization
+- [ ] JSON deserializer for Supply, Prefer, TrackedResources
+- [ ] Split Quantity from Rank (still planning to conflate Rank and Plus - think about this.  EG, "Steel Blanks +3")
 - [ ] Add achievement flag to Provides list for crafting recipes
 - [ ] add "Provides" nodes to OfficialData digesters
 - [ ] figure out how to and add a proper "make test" target
-- [ ] make the Bank output more readable
 - [ ] make the skipping statements more readable
-- [ ] Add verbosity flag to trim down the output
 - [ ] Add the Provides nodes to the bank
-- [ ] Begin to add http framework
 
+- [ ] make the Bank output more readable (maybe skip this and focus on web output)
+
+- [x] Add verbosity flag to trim down the output
+- [x] Begin to add http framework
 - [x] Clarify the cost output by not showing quantities for things that don't combine - like Feats or "Items"
 - [x] Make the OfficialData a singleton and
   - [x] remove the OfficialData arg from the planners

@@ -3,6 +3,9 @@
   <link href="jquery-ui-1.11.2.custom/jquery-ui.css" rel="stylesheet">
   <script src="jquery-ui-1.11.2.custom/external/jquery/jquery.js"></script>
   <script src="jquery-ui-1.11.2.custom/jquery-ui.js"></script>
+  <script src="Scripts/createCostDiv.js"></script>
+  <script src="Scripts/createBankDiv.js"></script>
+  <script src="Scripts/utils.js"></script>
 </head>
 <body>
 <h1>Pathfinder Online "Official Data" Viewer</h1>
@@ -45,8 +48,9 @@
         dataType: 'json',
         success: function(data) {
            plan = data;
-           $('<br />').appendTo('#planDiv');
-           $('<span></span>').html('some span: ' + data[0]['plainText']).appendTo('#planDiv');
+           $('#planDiv').empty();
+           CreateCostDiv(plan[0].Cost).appendTo('#planDiv');
+           CreateBankDiv(plan[0].Bank).appendTo('#planDiv');
         },
         error: function(jqXHR, textStatus, errorThrown) {
            console.log("Ajax error: " + textStatus + "; " + errorThrown);
