@@ -58,3 +58,4 @@ $(BDIR):
 clean:
 	rm -f $(SDIR)/*~ core
 	rm -rf $(ODIR) $(BDIR)
+	find . -name \*~ -print0 | xargs -0r rm
