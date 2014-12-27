@@ -171,6 +171,9 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	manufactureCycles = int(ceil(needed / req->Entity->CreationIncrement));
 	remainder = (req->Entity->CreationIncrement * manufactureCycles) - needed;
 	willBeConsumed = true;
+	log->Log(Logger::Level::Verbose, "Planners",
+		 "%swe need %s of %s, item created in increments of %d, must pay for %d cycles and make %d to get %s\n",
+		 indent, quantityString, req->Entity->Name.c_str(), req->Entity->CreationIncrement, manufactureCycles, (req->Entity->CreationIncrement * manufactureCycles), quantityString);
     }
     for (; reqEntry != reqs->end(); reqEntry++) {
 	LineItem *subReq = *reqEntry;
@@ -241,13 +244,20 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	cost.Add(req, costMessage);
     }
 
-    // only add the remainder if thre is one - that is, if we created the item.  And we will
+    // only add the remainder if there is one - that is, if we created the item.  And we will
     // only have created the item if there were new gates added.
     if (eTypeHelper->IsType(req->Entity->Type[0], "Item")) {
 	// there will only be remainders for items
 	if (remainder != 0.0) {
 	    assert(remainder >= 1.0); // I fear rounding error
+	    string parentEntity = "";
+	    if (parentLineItem != NULL) {
+		parentEntity = " for " + parentLineItem->Entity->Name;
+	    }
 	    LineItem *newBankItem = new LineItem(req->Entity, remainder);
+	    log->Log(Logger::Level::Note, "Planners",
+		     "%sBANK: deposit remainder %f of %s%s (we used %f)\n",
+		     indent, remainder, req->Entity->Name.c_str(), parentEntity.c_str(), needed);
 	    bank.Deposit(newBankItem);
 	}
     }
