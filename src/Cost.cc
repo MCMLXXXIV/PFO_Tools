@@ -46,21 +46,35 @@ void Cost::Add(LineItem *item, string msg, int level) {
     
     childNode->Notes.push_back(msg);
 
-    if (EntityTypeHelper::Instance()->IsRanked((entity->Type)[0])) {
+    EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
+
+    if (eTypeHelper->IsRanked((entity->Type)[0])) {
 	// achievements and feats
-	if (childNode->Sum < item->Quantity) {
-	    childNode->Sum = item->Quantity;
+	if (childNode->Rank < item->Rank) {
+	    childNode->Rank = item->Rank;
 	}
-    } else if (EntityTypeHelper::Instance()->IsUniversal((entity->Type)[0])) {
+    } else if (eTypeHelper->IsUniversal((entity->Type)[0])) {
 	// AbilityScore and AchievementPoint
-	// hmmm - I can't figure out why I handle these differently than feats.  Why would I allow
-	// the sum to go down here but not above, for feats and achievements?  I think this is a
-	// bug but I am not thinking clearly enough this morning to commit to changing anything -
-	// I feel like I must be missing something.
-	childNode->Sum = item->Quantity;
+	// these are handled differently than feats and achievements because they
+	// only have a quantity, not a rank.
+	if (childNode->Quantity < item->Quantity) {
+	    childNode->Quantity = item->Quantity;
+	}
     } else {
 	// Item, XP, Recipe, Time
-	childNode->Sum += item->Quantity;
+	childNode->Quantity += item->Quantity;
+	childNode->Rank = item->Rank;
+
+	// right now I only handle one rank of an item.  IE, with the data
+	// structure I have now for Cost, I can't track Steel Wire +1 and 
+	// Steel Wire +2 at the same time.  This is fine for simple plans
+	// and simple initial supplies.  But later I want to add some smarts
+	// to the planner to take advatage of a varied supply.  EG, say I
+	// have one or two +4 Steel Plates and I want to plan a +2 Steel
+	// Longsword - I'd like the planner to use the +4 Steel Plates and
+	// figure out the minimum rank required for the remaining components.
+	// But I'm putting off that work for now.
+
     }
 
     childNode->Add(item, msg, level + 1);
@@ -85,7 +99,7 @@ void Cost::Dump(int level) {
 	indent += "    ";
     }
 
-    map<short, Cost*>::iterator itr = SubNodes.begin();
+    auto itr = SubNodes.begin();
     for (; itr != SubNodes.end(); ++itr) {
 	short *type = (*itr).second->Type;
 	list<string> typeList = eTypeHelper->GetType(type);
@@ -93,10 +107,10 @@ void Cost::Dump(int level) {
 
 	// only show the summed quantity for Time and ExperiencePoints
 	if (level == 1 && (eTypeHelper->IsType(type[0],"Time") || eTypeHelper->IsType(type[0],"ExperiencePoint"))) {
-	    cout << " " << (*itr).second->Sum;
+	    cout << " " << (*itr).second->Quantity;
 	    if (eTypeHelper->IsType(type[0], "ExperiencePoint")) {
 		char buf[32];
-		snprintf(buf,31,"%.1f hours", ((*itr).second->Sum / 100)); // 100xp per hour
+		snprintf(buf,31,"%.1f hours", ((*itr).second->Quantity / 100)); // 100xp per hour
 		cout << " (" << buf << ")";
 	    }
 	}
@@ -143,7 +157,9 @@ string Cost::SerializeJson(Cost *cost) {
 	    list<string> typeList = eTypeHelper->GetType(child->Type);
 	    string childName = typeList.back();
 	    
-	    retVal += "{ \"Name\": \"" + childName + "\", \"Quantity\": " + to_string(child->Sum);
+	    retVal += "{ \"Name\": \"" + childName + "\"";
+	    retVal += ", \"Rank\": " + to_string(child->Rank);
+	    retVal += ", \"Quantity\": " + to_string(child->Quantity);
 	    
 	    if (child->SubNodes.size() > 0) {
 		retVal += ", \"Children\": ";

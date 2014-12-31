@@ -33,7 +33,7 @@ $(OBJS): | $(ODIR)
 
 $(ODIR)/LineItem.o :           $(patsubst %,$(SDIR)/%,LineItem.h)
 $(ODIR)/OfficialData.o :       $(patsubst %,$(SDIR)/%,OfficialData.h EntityDefinition.h LineItem.h Utils.h Log.h)
-$(ODIR)/Supply.o :             $(patsubst %,$(SDIR)/%,Supply.h OfficialData.h)
+$(ODIR)/Supply.o :             $(patsubst %,$(SDIR)/%,Supply.h OfficialData.h LineItem.h)
 $(ODIR)/TrackedResources.o :   $(patsubst %,$(SDIR)/%,TrackedResources.h Log.h)
 $(ODIR)/Cost.o :               $(patsubst %,$(SDIR)/%,Cost.h)
 $(ODIR)/Plan.o :               $(patsubst %,$(SDIR)/%,Plan.h)
@@ -44,7 +44,7 @@ $(ODIR)/Gate.o :               $(patsubst %,$(SDIR)/%,LineItem.h)
 $(ODIR)/HierarchicalId.o :     $(patsubst %,$(SDIR)/%,HierarchicalId.h)
 $(ODIR)/Utils.o :              $(patsubst %,$(SDIR)/%,Utils.h)
 $(ODIR)/CommandLineOptions.o : $(patsubst %,$(SDIR)/%,CommandLineOptions.h)
-$(ODIR)/main.o :               $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h Log.h)
+$(ODIR)/main.o :               $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h Log.h LineItem.h Utils.h)
 $(ODIR)/WebService.o :         $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h)
 
 $(ODIR):

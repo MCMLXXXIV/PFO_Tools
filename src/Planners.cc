@@ -59,7 +59,7 @@ string Planners::CreatePlanForItemGoalForWeb(const char *itemName, Supply *store
 	return buf;
     }
 
-    LineItem *item = new LineItem(entity, 1.0);
+    LineItem *item = new LineItem(entity, 1, 1.0);
 
     Cost cost;
     Plan *plan = CreatePlanForItemsGoal(item, *store, *tracked, cost);
@@ -92,16 +92,9 @@ Gate* Planners::GetPlanStep(LineItem *req,
     EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
     Logger *log = Logger::Instance();
 
-    char quantityString[16];
-    memset(quantityString, '\0', 16);
-    if (eTypeHelper->QuantityIsWholeNumber(req->Entity->Type[0])) {
-	snprintf(quantityString, 15, "%1.f", req->Quantity);
-    } else {
-	snprintf(quantityString, 15, "%.3f", req->Quantity);
-    }
     log->Log(Logger::Level::Verbose, "Planners",
-	     "%sPlanners::GetPlanStep(%s of %s); depth: %d\n",
-	     indent, quantityString, req->Entity->Name.c_str(), depth);
+	     "%sPlanners::GetPlanStep(%s); depth: %d\n",
+	     indent, req->ToString().c_str(), depth);
 
     Gate *gate = new Gate();
     
@@ -109,29 +102,25 @@ Gate* Planners::GetPlanStep(LineItem *req,
     if (depth > maxDepth) { maxDepth = depth; }
     ++callCount;
 
-    double needed = req->Quantity;
-    double stillNeeded = bank.Withdrawal(req);
-    if (stillNeeded <= 0.0) {
+    // because we may partially satisfy this requirement from the bank, we need to make a copy
+    // of the req LineItem to keep track of how much we still need after the bank withdrawal
+    LineItem needed(*req);
+    bool satisfiedByBank = bank.Withdrawal(&needed);
+    if (satisfiedByBank == true) {
 	bool isLeaf = true;
 	bool bankFilled = true;
 	log->Log(Logger::Level::Verbose, "Planners",
-		 "%sBank: %s of %s satisfied from bank\n",
-		 indent, quantityString, req->Entity->Name.c_str());
+		 "%sBank: %s satisfied from bank\n",
+		 indent, req->ToString().c_str());
 	return new Gate(isLeaf, bankFilled, req);
     }
-    needed = stillNeeded;
-	
+
     int newGates = 0;
 
     // get the requirements for the requested rank
-    // as of this writing achievements and feats have ranks
-    // all the others (like Items, Time, etc) do not
-    // though I am toying with the idea of ranking items too - to track +1, +2 things, etc
     list < LineItem* > *reqs = NULL;
-    if (eTypeHelper->IsRanked(req->Entity->Type[0])) {
-	// I fear rounding error - but in the case of Ranked entities, the Qty should always
-	// be a whole number.
-	unsigned rank = unsigned(req->Quantity + 0.1);
+    if (eTypeHelper->IsRanked(req->Entity->Type[0]) || eTypeHelper->IsType(req->Entity->Type[0], "Item")) {
+	unsigned rank = req->Rank;
 	// TODO - until I finish the parsers, some entities will have incomplete data
 	if (req->Entity->Requirements.size() < 1) {
 	    log->Log(Logger::Level::Note, "Planners",
@@ -165,15 +154,18 @@ Gate* Planners::GetPlanStep(LineItem *req,
     bool willBeConsumed = productConsumed;
     double remainder = 0.0;
     int manufactureCycles = 1;
-    list< LineItem* >::iterator reqEntry = reqs->begin();
+    auto reqEntry = reqs->begin();
     if (eTypeHelper->IsType(req->Entity->Type[0], "Item")) {
+	// remember: uses "needed" here because we may have satisfied some of the req from the bank
+	// and that will only be reflected in the "needed" element
+	double qtyRequired = needed.Quantity;
 	assert(req->Entity->CreationIncrement > 0);
-	manufactureCycles = int(ceil(needed / req->Entity->CreationIncrement));
-	remainder = (req->Entity->CreationIncrement * manufactureCycles) - needed;
+	manufactureCycles = int(ceil(qtyRequired / req->Entity->CreationIncrement));
+	remainder = (req->Entity->CreationIncrement * manufactureCycles) - qtyRequired;
 	willBeConsumed = true;
 	log->Log(Logger::Level::Verbose, "Planners",
-		 "%swe need %s of %s, item created in increments of %d, must pay for %d cycles and make %d to get %s\n",
-		 indent, quantityString, req->Entity->Name.c_str(), req->Entity->CreationIncrement, manufactureCycles, (req->Entity->CreationIncrement * manufactureCycles), quantityString);
+		 "%swe need %s, item created in increments of %d, must pay for %d cycles and make %d\n",
+		 indent, needed.ToString().c_str(), req->Entity->CreationIncrement, manufactureCycles, (req->Entity->CreationIncrement * manufactureCycles));
     }
     for (; reqEntry != reqs->end(); reqEntry++) {
 	LineItem *subReq = *reqEntry;
@@ -213,33 +205,17 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	    parentEntity = " for " + parentLineItem->Entity->Name;
 	}
 	log->Log(Logger::Level::Note, "Planners",
-		 "%sBANK: deposit %s of %s%s\n",
-		 indent, quantityString, req->Entity->Name.c_str(), parentEntity.c_str());
+		 "%sBANK: deposit %s%s\n",
+		 indent, req->ToString().c_str(), parentEntity.c_str());
 	bank.Deposit(req);
     } else if (eTypeHelper->IsType(req->Entity->Type[0], "Item") && productConsumed == false) {
 	// for example, the item goal(s)
 	bank.Deposit(req);
     }
     if (newGates < 1) {
-	string costMessage;
-	if (parentLineItem == NULL) {
-	    costMessage = req->Entity->Name;
-	} else {
-	    char buf[255];
-	    char *startHere = buf;
-	    if (eTypeHelper->QuantityIsWholeNumber(req->Entity->Type[0])) {
-		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%4.f for ", req->Quantity);
-		startHere += charsAdded;
-	    } else {
-		int charsAdded = snprintf(startHere, (254 - (startHere-buf)), "%5.3f for ", req->Quantity);
-		startHere += charsAdded;
-	    }
-	    if (eTypeHelper->QuantityIsWholeNumber(parentLineItem->Entity->Type[0])) {
-		snprintf(startHere, (254 - (startHere-buf)), "%2.f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
-	    } else {
-		snprintf(startHere, (254 - (startHere-buf)), "%5.3f of %s", parentLineItem->Quantity, parentLineItem->Entity->Name.c_str());
-	    }
-	    costMessage = buf;
+	string costMessage = req->ToString();
+	if (parentLineItem != NULL) {
+	    costMessage += " for " + parentLineItem->ToString();
 	}
 	cost.Add(req, costMessage);
     }
@@ -254,17 +230,17 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	    if (parentLineItem != NULL) {
 		parentEntity = " for " + parentLineItem->Entity->Name;
 	    }
-	    LineItem *newBankItem = new LineItem(req->Entity, remainder);
+	    LineItem *newBankItem = new LineItem(req->Entity, req->Rank, remainder);
 	    log->Log(Logger::Level::Note, "Planners",
 		     "%sBANK: deposit remainder %f of %s%s (we used %f)\n",
-		     indent, remainder, req->Entity->Name.c_str(), parentEntity.c_str(), needed);
+		     indent, remainder, req->Entity->Name.c_str(), parentEntity.c_str(), needed.Quantity);
 	    bank.Deposit(newBankItem);
 	}
     }
 
     log->Log(Logger::Level::Note, "Planners",
-	     "%shandled %s of %s with %d new gates (%lu)\n",
-	     indent, quantityString, req->Entity->Name.c_str(), newGates, (unsigned long)gate);
+	     "%shandled %s with %d new gates (%lu)\n",
+	     indent, req->ToString().c_str(), newGates, (unsigned long)gate);
     return gate;
 
 }

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <cassert>
 
-bool Utils::RankInName(const char *origName, char **name,  int &rank) {
+bool Utils::RankInName(const char *origName, char **name,  unsigned &rank) {
     int len = strlen(origName);
 
     const char *ptr = origName + len - 1;

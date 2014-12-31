@@ -9,14 +9,16 @@ class EntityDefinition;
 
 class LineItem {
  public:
-    LineItem(){};
-    LineItem(EntityDefinition* entity, double quantity);
+    LineItem();
+    LineItem(EntityDefinition* entity, int rank, double quantity);
     void Dump();
+    string ToString();
     string Describe(LineItem *parent);
 
     static string SerializeJson(LineItem *lineItem);
 
     EntityDefinition* Entity;
+    unsigned Rank;
     double Quantity;
 };
 

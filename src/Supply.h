@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 class EntityDefinition;
 class LineItem;
@@ -11,8 +12,8 @@ using namespace std;
 
 class Supply {
  public:
-    map<string, LineItem*> Items;
-    double Withdrawal(LineItem *item);
+    map<string, vector<LineItem*> > Items;
+    bool Withdrawal(LineItem *item);
     void Deposit(LineItem *item);
     void Dump();
     static Supply* Deserialize(const char*);

@@ -22,7 +22,8 @@ class Cost {
     void Dump(int);
 
     short *Type;
-    double Sum;
+    unsigned Rank;
+    double Quantity;
     map<short, Cost*> SubNodes;
     list<string> Notes;
 

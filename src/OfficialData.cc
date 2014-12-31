@@ -278,17 +278,27 @@ bool OfficialData::ParseAndStoreRefiningRecipeFile(string fn, bool testRun) {
     return this->ParseAndStoreRecipeFile(fn, testRun, "Refine");
 }
 
-// going to handle subtype differently - later I'll add a list of tags in the EntityDefinition
-// then I can add the "Craft" tag or the "Refine" tag to the Entity.  But for now, this second arg
-// is (almost) ignored.  Until I am parsing the file that tells me how much an item is created
-// when you do one creation job (eg, if you make course thread, you get about 20 of them per job)
-// I am adding dummy, random values when this function is called with ignored == "Refine".
+// I used to do different stuff if the recipe file was crafting vs refining - but I've
+// decided to try it a different way - but I'm leaving the arg in, even if it's ignored,
+// for the time being.
 bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignored) {
     // open the file named fn
     // parse the data cells
     // foreach row
     //    make an entity definition and fill it out
     //    store the entity in the global entity map by the name
+
+    // we are in the recipe file parser so we are only filling out entities and entity requirements
+    // for items.  And all items have ranks (even though the Item Type for now returns false via
+    // the entity type helper IsRanked() method).  Currently items have ranks +0, +1, +2, +3, +4,
+    // and +5.  Only the refining recipes will have ranks in the name.  As a consequence, only the
+    // refining items will have separate Requirement lists and Provides lists for each rank.  The
+    // rank of a crafted item is determined solely based on the (average?) ranks of the refined
+    // items used to craft it.  That is, if a Sunrod is created w/ all +3 materials (15 of Weak
+    // Luminous Extract +3, 2 of Weak Acidic Extract +3, and one Copper Bar +3) then the resulting
+    // Sunrod will be +3.
+
+    // Also, +0 is Rank Zero (Rank = 0).
 
     // cout << "+++ RUNNING: OfficialData::ParseAndStoreRecipeFile(" << fn << ")" << endl;
 
@@ -305,31 +315,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignor
     vector<string> colName;
     int colNameMaxLen = 0;
     while(getline(fin, line)) {
-	// this is kind of ugly as the header line is incorrect at this time.  EG, it says:
-	// |Component 3 and Number|  Achievement Type|Base Crafting Seconds|Last Updated
-	// but a given row will have:
-	// |Golden Crystal      |1|||Common          |2400                 |9-18-14
-
-	// so for now, knowledge of the row format will be hardcoded here
-	// fieldNum  Name                   Example
-	//     0     Recipe                 Recipe
-	//     1     Name                   Apprentice's Sunrod
-	//     2     ReqSkill               Alchemist
-	//     3     SkillRankReq           0
-	//     4     Tier                   1
-	//     5     Component1Name         Weak Luminous Extract
-	//     6     Component1Qty          15
-	//     7     Component2Name         Weak Acidic Extract
-	//     8     Component2Qty          2
-	//     9     Component3Name         Copper Bar
-	//    10     Component3Qty          1
-	//    11     EMPTY (comp4?)
-	//    12     EMPTY (comp4?)
-	//    13     Achievement Type       Common
-	//    14     Base Crafting Seconds  3000
-	//    15     Last Updated           9-18-14
-
-	// Recipe Name,Feat Name,Feat Rank,Tier,Component 1,#1,Component 2,#2,Component 3,#3,Component 4,#4,Output,,#,Base Crafting Seconds,Category,+0 Quality,Achievement Type,Last Updated,Template|R
+	// Recipe Name,Feat Name,Feat Rank,Tier,Component 1,#1,Component 2,#2,Component 3,#3,Component 4,#4,Output,,#,Base Crafting Seconds,Category,+0 Quality,Achievement Type,Last Updated,Template|R...
 
 	//[ 0]           Recipe Name Weak Soothing Extract +3
 	//[ 1]             Feat Name Apothecary
@@ -414,48 +400,23 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignor
 	}
 
 	string *name = new string(fields[0]);
-	int rankInName;
+	unsigned rank = 0;
 	char *namePart;
-	if (Utils::RankInName(name->c_str(), &namePart, rankInName)) {
-	    // if (regex_search(name, " \+[0-9]+$")) {
-	    // cout << endl << namePart << "; Rank " << rankInName << " (from [" << *name << "])" << endl;
+	if (Utils::RankInName(name->c_str(), &namePart, rank)) {
 	    delete name;
 	    name = new string(namePart);
 	    delete namePart;
-	    // right now we aren't storing entities for +1 and greater items
-	    // there is much we would have to add to support this - right now for ranked
-	    // items there is no other Quantity, so the Quantity in the LineItem does double
-	    // duty for ranks and actual quantities.  But when we add Quantities of Ranked items
-	    // (like 5 x "Steel Wire +1") then we will have to revamp the LineItem class.
-	    if (rankInName > 0) {
-		delete name;
-		continue;
-	    }		
+	} else {
+	    rank = 0;
 	}
 
 	// see if something else already added an entity for this (eg, if the entity was listed
 	// as a component for another Entity)
-	map< string, EntityDefinition* >::iterator entityMapEntry;
-	EntityDefinition *entity;
+	EntityDefinition *entity = NULL;
 	string fullyQualifiedName = "Item.";
 	fullyQualifiedName += *name;
 	entity = GetEntity(fullyQualifiedName);
-	if (entity != NULL) {
-	    // only add a Requirements and Provides list if we process the Entity from the spreadsheet
-	    if (entity->Requirements.size() < 1) {
-		entity->Requirements.push_back(*(new list<LineItem*>));
-		entity->Provides.push_back(*(new list<LineItem*>));
-	    }
-	    if (entity->ProcessedSpreadsheetDefinition != false) {
-		// I had an assertion here to trap any entities here that were already processed - but
-		// I don't know why.  Why should they necessarily be unprocessed here?  Oh!  because if
-		// we are here, then we are processing it.  And we should only process it once!
-		cout << "ERROR: we are processing " << fullyQualifiedName << " from " << fn 
-		     << " but it appears that this thing already has a processed entity in the system" << endl;
-	    }
-	    assert(entity->ProcessedSpreadsheetDefinition == false);
-	    //cout << ".";
-	} else {
+	if (entity == NULL) {
 	    //cout << "+";
 	    // I could (should?) check that these fields were set correctly the first time - but lets call that a todo
 	    entity = new EntityDefinition();
@@ -465,12 +426,14 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignor
 	    typeFields.push_back("Item");
 	    typeFields.push_back(*name);
 	    entity->Type = typeHelper->GetType(typeFields);
+	    StoreEntity(fullyQualifiedName, entity);
+	} // else { cout << "."; }
 
-	    // right now, Items aren't ranked - but we could extend this later to have a +1 item be rank two, etc
-	    // still, we need to create the requirements and provides lists for the single rank
+	// we only add a Requirements and Provides list here where we are processing the Entity
+	// from the spreadsheet
+	while (entity->Requirements.size() <= rank) {
 	    entity->Requirements.push_back(*(new list<LineItem*>));
 	    entity->Provides.push_back(*(new list<LineItem*>));
-	    StoreEntity(fullyQualifiedName, entity);
 	}
 
 	entity->CreationIncrement = atoi(fields[14].c_str());
@@ -492,7 +455,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignor
 	    StoreEntity("Time", req->Entity);
 	}
 	req->Quantity = atoi(fields[15].c_str());
-	entity->Requirements[0].push_back(req);
+	entity->Requirements[rank].push_back(req);
 
 	// Feat requirement
 	string featName = fields[1];
@@ -520,8 +483,9 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignor
 	    req->Entity->ProcessedSpreadsheetDefinition = false;
 	    StoreEntity(featNameFqn, req->Entity);
 	}
-	req->Quantity = featLevel;
-	entity->Requirements[0].push_back(req);
+	req->Rank = featLevel;
+
+	entity->Requirements[rank].push_back(req);
 	
 	// now all the components - we only have three per recipe right now but I think there
 	// is space in here for four.
@@ -546,7 +510,7 @@ bool OfficialData::ParseAndStoreRecipeFile(string fn, bool testRun, string ignor
 		StoreEntity(componentNameFqn, req->Entity);
 	    }
 	    req->Quantity = atoi(fields[componentOffset+1].c_str());
-	    entity->Requirements[0].push_back(req);	    
+	    entity->Requirements[rank].push_back(req);	    
 	}
 	
 	delete name;
@@ -741,7 +705,7 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, bool testRun, string 
 
 	    // add the previous rank as a requirement
 	    if (rank > 1) {
-		req = new LineItem(entity, (rank - 1));
+		req = new LineItem(entity, (rank - 1), 1);
 		reqs->push_back(req);
 	    }
 
@@ -854,7 +818,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
 	vector<string> fields = Utils::SplitCommaSeparatedValuesWithQuotedFields(line.c_str());
 	assert(fields.size() == 3);
 
-	int rank;
+	unsigned rank;
 	char *namePart;
 	bool rankInName = Utils::RankInName(fields[0].c_str(), &namePart, rank);
 	assert(rankInName == true);
@@ -878,12 +842,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
 	}
 	entity->ProcessedSpreadsheetDefinition = true;
 
-	if (entity->Requirements.size() == 0) {
-	    // skipping rank zero
-	    entity->Requirements.push_back(*(new list<LineItem*>));
-	    entity->Provides.push_back(*(new list<LineItem*>));
-	}
-	while (entity->Requirements.size() <= (unsigned)rank) {
+	while (entity->Requirements.size() <= rank) {
 	    entity->Requirements.push_back(*(new list<LineItem*>));
 	    entity->Provides.push_back(*(new list<LineItem*>));
 	}
@@ -894,7 +853,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
 
 	// add the previous rank as a requirement
 	if (rank > 1) {
-	    LineItem *req = new LineItem(entity, (rank - 1));
+	    LineItem *req = new LineItem(entity, (rank - 1), 1);
 	    reqs->push_back(req);
 	}
 	
@@ -948,7 +907,7 @@ LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeN
 		}
 		orEntity->Requirements[0].push_back(newReq);
 	    }
-	    andedLineItems.push_back(new LineItem(orEntity, 1));
+	    andedLineItems.push_back(new LineItem(orEntity, 1, 1));
 	    
 	} else {
 	    LineItem *newReq = BuildLineItemFromKeyEqualsVal((*groupEntry), entityTypeName);
@@ -983,7 +942,7 @@ LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeN
 	for (groupEntry = andedLineItems.begin(); groupEntry != andedLineItems.end(); ++groupEntry) {
 	    andEntity->Requirements[0].push_back(*groupEntry);
 	}
-	LineItem *group = new LineItem(andEntity, 1);
+	LineItem *group = new LineItem(andEntity, 1, 1);
 	return group;
     }
 }
@@ -995,9 +954,9 @@ LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityT
 	return NULL;
     }
 
-    // Yikes - this one is scary - I can't remember if the type will be underspecified here
-    // eg, will we store Item.Craft.Sword and then just get Item.Sword through this interface?
-    // TODO: Dump all entities and make sure they are all correct...
+    // the input will be of the form "<EntityName>=<rank|Quantity>"
+    // EG: Fighter=3  or  Strength=12
+
     string fqn = entityTypeName;
     fqn += "." + key;
     EntityDefinition* entity = GetEntity(fqn);
@@ -1010,8 +969,11 @@ LineItem* OfficialData::BuildLineItemFromKeyEqualsVal(string kvp, string entityT
 	entity->Type = EntityTypeHelper::Instance()->GetType(typeFields);
 	StoreEntity(fqn, entity);
     }
-    
-    return new LineItem(entity, atof(value.c_str()));
+    if (EntityTypeHelper::Instance()->IsRanked(entity->Type[0])) {
+	return new LineItem(entity, atoi(value.c_str()), 1);
+    } else {
+	return new LineItem(entity, 0, atof(value.c_str()));
+    }
 }
 
 bool OfficialData::StoreEntity(string fullyQualifiedName, EntityDefinition *entity) {

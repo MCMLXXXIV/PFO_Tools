@@ -117,15 +117,15 @@ int main(int argc, char **argv) {
 
     // cout << EntityDefinition::Dump(*entity) << endl; return 0;
 
-    LineItem *stuff = new LineItem(entity, 2.0);
+    LineItem *stuff = new LineItem(entity, 0, 2.0);
     headEntity->Requirements[0].push_back(stuff);
 
     entity = rulesGraph->GetEntity("Item.Yew and Iron Splint");
     assert(entity != NULL);
-    stuff = new LineItem(entity, 1.0);
+    stuff = new LineItem(entity, 0, 1.0);
     //headEntity->Requirements[0].push_back(stuff);
 
-    LineItem *headGoal = new LineItem(headEntity, 1.0);
+    LineItem *headGoal = new LineItem(headEntity, 0, 1.0);
 
     Supply bank;
 
@@ -182,15 +182,15 @@ void DumpItemRequirements(string itemsArg) {
 	EntityDefinition *entity = NULL;
 
 	string entityName;
-	int rankInName;
+	unsigned rank;
 	char *namePart;
-	if (Utils::RankInName(itemsVec[0].c_str(), &namePart, rankInName)) {
+	if (Utils::RankInName(itemsVec[0].c_str(), &namePart, rank)) {
 	    entityName = namePart;
 	    delete namePart;
-	    // headGoal->Quantity = rankInName * 1.0;	    
+	    // headGoal->Quantity = rank * 1.0;	    
 	} else {
 	    entityName = itemsVec[0];
-	    rankInName = -1;
+	    rank = 0;
 	}
 
 	entity = OfficialData::Instance()->GetEntity(entityName);
@@ -199,7 +199,7 @@ void DumpItemRequirements(string itemsArg) {
 	    return;
 	}
 
-	cout << EntityDefinition::Dump(*entity, (rankInName * 1.0)) << endl;
+	cout << EntityDefinition::Dump(*entity, (rank * 1.0)) << endl;
     } else {
 	cout << "haven't implemented this feature for multiple items" << endl;
     } 
@@ -216,15 +216,16 @@ void GetPlanForItems(string itemsArg) {
     if (itemsVec.size() == 1) {
 	EntityDefinition *entity = NULL;
 
-	LineItem *headGoal = new LineItem(entity, 1.0);
+	LineItem *headGoal = new LineItem(entity, 0, 1.0);
 
 	string entityName;
-	int rankInName;
+	unsigned rank;
 	char *namePart;
-	if (Utils::RankInName(itemsVec[0].c_str(), &namePart, rankInName)) {
+	if (Utils::RankInName(itemsVec[0].c_str(), &namePart, rank)) {
 	    entityName = namePart;
 	    delete namePart;
-	    headGoal->Quantity = rankInName * 1.0;	    
+	    headGoal->Rank = rank;
+	    headGoal->Quantity = 1.0;
 	} else {
 	    entityName = itemsVec[0];
 	}
@@ -292,7 +293,7 @@ void GetPlanForItems(string itemsArg) {
 	    entityName = "AbilityScore." + (*abilityItem);
 	    EntityDefinition *abiEntity = OfficialData::Instance()->GetEntity(entityName);
 	    assert(abiEntity != NULL);
-	    bank.Deposit(new LineItem(abiEntity, 10.0));
+	    bank.Deposit(new LineItem(abiEntity, 0, 10.0));
 	}
 	Plan *plan = Planners::CreatePlanForItemsGoal(headGoal, bank, trackedResources, cost);
 	
@@ -399,10 +400,10 @@ void TestRankSpliter() {
     vector<string> foo = {"Pine Pole", "Pine Pole +1", "Fighter 8", "Fighter Level 6"};
     vector<string>::iterator itr;
     for (itr = foo.begin(); itr != foo.end(); ++itr) {
-	int rankInName = -1;
+	unsigned rank = 0;
 	char *namePart;
-	bool ret = Utils::RankInName((*itr).c_str(), &namePart, rankInName);
-	printf("%15s %5s [%s] [%d]\n", (*itr).c_str(), (ret ? "TRUE" : "FALSE"), (ret ? namePart : "n/a"), rankInName);
+	bool ret = Utils::RankInName((*itr).c_str(), &namePart, rank);
+	printf("%15s %5s [%s] [%d]\n", (*itr).c_str(), (ret ? "TRUE" : "FALSE"), (ret ? namePart : "n/a"), rank);
     }
 } 
 
