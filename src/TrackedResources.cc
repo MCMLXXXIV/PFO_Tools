@@ -82,7 +82,19 @@ TrackedResources* TrackedResources::Deserialize(const char *buf) {
 
     list<string> typeStringName;
     typeStringName.clear();
-    typeStringName.push_back("Item");
+    typeStringName.push_back("AbilityScore");
+    trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+    typeStringName.clear();
+    typeStringName.push_back("Achievement");
+    trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+    typeStringName.clear();
+    typeStringName.push_back("AchievementPoint");
+    trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
+
+    typeStringName.clear();
+    typeStringName.push_back("ExperiencePoint");
     trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
     typeStringName.clear();
@@ -90,11 +102,11 @@ TrackedResources* TrackedResources::Deserialize(const char *buf) {
     trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
     typeStringName.clear();
-    typeStringName.push_back("Time");
+    typeStringName.push_back("Item");
     trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
     typeStringName.clear();
-    typeStringName.push_back("ExperiencePoint");
+    typeStringName.push_back("Time");
     trackedTypes.push_back(EntityTypeHelper::Instance()->GetType(typeStringName));
 
     retVal->SetTracked(trackedTypes);

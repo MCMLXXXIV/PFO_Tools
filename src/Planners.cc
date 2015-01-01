@@ -42,7 +42,7 @@ Plan* Planners::CreatePlanForItemsGoal(LineItem *goal,
     return plan;
 }
 
-string Planners::CreatePlanForItemGoalForWeb(const char *itemName, Supply *store, TrackedResources *tracked) {	
+string Planners::CreatePlanForItemGoalForWeb(const char *itemName, unsigned rank, Supply *store, TrackedResources *tracked) {	
     time_t now = time(NULL);
     struct tm * timeinfo;
     timeinfo = localtime(&now);
@@ -59,7 +59,7 @@ string Planners::CreatePlanForItemGoalForWeb(const char *itemName, Supply *store
 	return buf;
     }
 
-    LineItem *item = new LineItem(entity, 1, 1.0);
+    LineItem *item = new LineItem(entity, rank, 1.0);
 
     Cost cost;
     Plan *plan = CreatePlanForItemsGoal(item, *store, *tracked, cost);
@@ -68,7 +68,8 @@ string Planners::CreatePlanForItemGoalForWeb(const char *itemName, Supply *store
     retVal += "\"Item\": \"" + string(itemName) + "\", ";
     retVal += "\"Bank\": " + Supply::SerializeJson(store) + ", ";
     retVal += "\"Cost\": " + Cost::SerializeJson(&cost) + ", ";
-    retVal += "\"Plan\": " + Plan::SerializeJson(plan);
+    retVal += "\"Plan\": " + Plan::SerializeJson(plan) + ", ";
+    retVal += "\"ItemDeep\": " + EntityDefinition::SerializeJson(entity);
     retVal += " } ]";
 
     return retVal.c_str();

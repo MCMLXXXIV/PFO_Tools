@@ -310,7 +310,8 @@ void GetPlanForItems(string itemsArg) {
 	retVal += "\"Item\": \"" + entity->Name + "\", ";
 	retVal += "\"Bank\": " + Supply::SerializeJson(&bank) + ", ";
 	retVal += "\"Cost\": " + Cost::SerializeJson(&cost) + ", ";
-	retVal += "\"Plan\": " + Plan::SerializeJson(plan);
+	retVal += "\"Plan\": " + Plan::SerializeJson(plan) + ", ";
+	retVal += "\"ItemDeep\": " + EntityDefinition::SerializeJson(entity);
 	retVal += " } ]";
 	cout << retVal;
 

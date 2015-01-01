@@ -21,7 +21,7 @@ class Planners {
 				       TrackedResources &trackedResources,
 				       Cost &cost
 				       );
-    static string CreatePlanForItemGoalForWeb(const char *input, Supply *store, TrackedResources *tracked);
+    static string CreatePlanForItemGoalForWeb(const char *input, unsigned rank, Supply *store, TrackedResources *tracked);
 
  private:
     static Gate* GetPlanStep(LineItem *req,

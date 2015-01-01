@@ -15,7 +15,7 @@ class Cost {
     void Add(string msg);
     void Dump();
 
-    static string SerializeJson(Cost *cost);
+    static string SerializeJson(Cost *cost, int level = 0);
 
  private:
     void Add(LineItem *item, string msg, int level);

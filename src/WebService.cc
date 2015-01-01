@@ -25,7 +25,7 @@
 #include "Plan.h"
 #include "Utils.h"
 #include "CommandLineOptions.h"
-
+#include "Log.h"
 
 #define PORT            8888
 #define POSTBUFFERSIZE  512
@@ -253,15 +253,16 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
     }
 
     if (strncmp("/plan", url, strlen("/plan")) == 0) {
-	map<string,string>::iterator keyValEntry = conInfo->PostData->find("Item");
+	auto keyValEntry = conInfo->PostData->find("Entity");
 	if (keyValEntry == conInfo->PostData->end()) {
-	    printf("bad plan request - no value for key 'Item'\n");
+	    printf("bad plan request - no value for key 'Entity'\n");
 	    //  TODO send error page here
 	    char buffer[1024];
 	    snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
 	    return SendPage(connection, buffer, MHD_HTTP_OK);
 	}
-	string val = keyValEntry->second;
+	string entityName = keyValEntry->second;
+	printf("Getting plan for entity: [%s]\n", entityName.c_str());
 
 	keyValEntry = conInfo->PostData->find("Store");
 	string storeSerialized = "default";
@@ -279,8 +280,15 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 
 	TrackedResources *tracked = TrackedResources::Deserialize(trackedSerialized.c_str());
 
+	unsigned rank = 0;
+	keyValEntry = conInfo->PostData->find("Rank");
+	if (keyValEntry != conInfo->PostData->end()) {
+	    rank = atoi(keyValEntry->second.c_str());
+	}
+
 	// returns json
-	string result = Planners::CreatePlanForItemGoalForWeb(val.c_str(), store, tracked);
+	Logger::Instance()->SetLoggingLevel(Logger::Level::Verbose);
+	string result = Planners::CreatePlanForItemGoalForWeb(entityName.c_str(), rank, store, tracked);
 	printf("returning for plan: %s\n", result.c_str());
 
 	return SendPage(connection, result.c_str(), MHD_HTTP_OK);

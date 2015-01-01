@@ -26,7 +26,23 @@ string EntityDefinition::SerializeJson(EntityDefinition *entity) {
     if (entity == NULL) { return ""; }
     string retVal = "{ \"Name\": ";
     retVal += "\"" + entity->Name + "\"";
-    retVal += " }";
+    retVal += ", \"TypeId\": \"" + EntityTypeHelper::Instance()->ToIdString(entity->Type) + "\"";
+    retVal += ", \"TypeIdStr\": \"" + EntityTypeHelper::Instance()->GetTypePrettyString(entity->Type) + "\"";
+    retVal += ", \"Requirements\": [ ";
+    bool addSep = false;
+    for (auto reqEntry = entity->Requirements.begin(); reqEntry != entity->Requirements.end(); ++reqEntry) {
+	if (addSep) { retVal += ", "; } else { addSep = true; }
+	retVal += "[ ";
+	list<LineItem*> &reqList = (*reqEntry);
+	bool addItemSep = false;
+	for (auto itemEntry = reqList.begin(); itemEntry != reqList.end(); ++itemEntry) {
+	    if (addItemSep) { retVal += ", "; } else { addItemSep = true; }
+	    retVal += LineItem::SerializeJson(*itemEntry);
+	}
+	retVal += " ]";
+    }
+    
+    retVal += " ] }";
 
     return retVal;
 }

@@ -182,12 +182,14 @@ string EntityTypeHelper::GetTypePrettyString(short* type) {
     if (type == NULL) { return retVal; }
 
     map<string, HierarchicalId*> *subIds = &(IdRoot.NextLevel);
+    bool addSep = false;
     while (*type != 0 && subIds != NULL) {
 	// this is ugly - need to make a map for this
 	map<string, HierarchicalId*> *nextSubIdLevel = NULL;
 	map<string, HierarchicalId*>::iterator itr = subIds->begin();
 	for (; itr != subIds->end(); ++itr) {
 	    if ( (*itr).second->Index == *type ) {
+		if (addSep) { retVal += "."; } else { addSep = true; }
 		retVal += (*itr).first;
 		++type;
 		nextSubIdLevel = &( (*itr).second->NextLevel );

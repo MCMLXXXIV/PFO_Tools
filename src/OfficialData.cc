@@ -826,7 +826,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
 	string featNameShort = namePart;
 	delete namePart;
 
-	string featNameFQ = "Feat.";
+	string featNameFQ = "Achievement.";
 	featNameFQ += featNameShort;
 
 	EntityDefinition *entity = GetEntity(featNameFQ);
@@ -835,7 +835,7 @@ bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
 	    entity->Name = featNameShort;
 
 	    list<string> typeFields;
-	    typeFields.push_back("Feat");
+	    typeFields.push_back("Achievement");
 	    typeFields.push_back(featNameShort);
 	    entity->Type = typeHelper->GetType(typeFields);
 	    StoreEntity(featNameFQ, entity);
@@ -907,7 +907,7 @@ LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeN
 		}
 		orEntity->Requirements[0].push_back(newReq);
 	    }
-	    andedLineItems.push_back(new LineItem(orEntity, 1, 1));
+	    andedLineItems.push_back(new LineItem(orEntity, 0, 1));
 	    
 	} else {
 	    LineItem *newReq = BuildLineItemFromKeyEqualsVal((*groupEntry), entityTypeName);
@@ -942,7 +942,7 @@ LineItem* OfficialData::ParseRequirementString(string reqStr, string entityTypeN
 	for (groupEntry = andedLineItems.begin(); groupEntry != andedLineItems.end(); ++groupEntry) {
 	    andEntity->Requirements[0].push_back(*groupEntry);
 	}
-	LineItem *group = new LineItem(andEntity, 1, 1);
+	LineItem *group = new LineItem(andEntity, 0, 1);
 	return group;
     }
 }

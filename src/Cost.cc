@@ -127,7 +127,7 @@ void Cost::Dump(int level) {
     }	
 }
 
-string Cost::SerializeJson(Cost *cost) {
+string Cost::SerializeJson(Cost *cost, int level /* defaults to zero */ ) {
     // I'm not super happy with the way this ended up - it seems like it could be clearer.
     // This function is called recursively.  It always returns a JSON array.  If the current
     // node (cost) has children then it will be an array of Costs (this class).  If the
@@ -138,22 +138,30 @@ string Cost::SerializeJson(Cost *cost) {
 
     string retVal = "[ ";
 
+    bool addTopLevelSep = false;
+
+    if (level == 0 && cost->NonAggregateCosts.size() > 0) {
+	retVal += "{ \"Name\": \"UnaggregatedCosts\", \"Detail\": [";
+	for (auto itr = cost->NonAggregateCosts.begin(); itr != cost->NonAggregateCosts.end(); ++itr) {
+	    if (addTopLevelSep) { retVal += ", "; } else { addTopLevelSep = true; }
+	    retVal += "\"" + *itr + "\"";
+	}
+	retVal += "]}";
+    }
+
     if (cost->SubNodes.size() < 1) {
-	 bool addSep = false;
 	 list<string>::iterator msgEntry = cost->Notes.begin();
 	 for (; msgEntry != cost->Notes.end(); ++msgEntry) {
-	     if (addSep) { retVal += ", "; } else { addSep = true; }
+	     if (addTopLevelSep) { retVal += ", "; } else { addTopLevelSep = true; }
 	     retVal += "\"" + *msgEntry + "\"";
 	 }
     } else {
-	bool addSep = false;
-
 	EntityTypeHelper *eTypeHelper = EntityTypeHelper::Instance();
 	map<short, Cost*>::iterator itr = cost->SubNodes.begin();
 	for (; itr != cost->SubNodes.end(); ++itr) {
 	    Cost *child = (*itr).second;
 	    
-	    if (addSep) { retVal += ", "; } else { addSep = true; }
+	    if (addTopLevelSep) { retVal += ", "; } else { addTopLevelSep = true; }
 	    list<string> typeList = eTypeHelper->GetType(child->Type);
 	    string childName = typeList.back();
 	    
@@ -166,7 +174,7 @@ string Cost::SerializeJson(Cost *cost) {
 	    } else {
 		retVal += ", \"Detail\": ";
 	    }
-	    retVal += SerializeJson(child);
+	    retVal += SerializeJson(child, level + 1);
 	    retVal += " }";
 	}
     }

@@ -1,5 +1,6 @@
 <html>
 <head>
+  <link href="CSS/index.css" rel="stylesheet">
   <link href="jquery-ui-1.11.2.custom/jquery-ui.css" rel="stylesheet">
   <script src="jquery-ui-1.11.2.custom/external/jquery/jquery.js"></script>
   <script src="jquery-ui-1.11.2.custom/jquery-ui.js"></script>
@@ -10,9 +11,14 @@
 <body>
 <h1>Pathfinder Online "Official Data" Viewer</h1>
 
-<form id='itemSelect'>
+<form id='entitySelect'>
 <label for="autocomplete">Select an Entity: </label>
-<input id="autocomplete" name='item'>
+<input id="autocomplete" name='entity'>
+<div id='formRankDiv'>
+<label for="rankSelector">Enter Rank, if any: </label>
+<input id="rankSelector" type='text' name='rank' maxlength="2">
+<input id="submitBut" type='submit' text="Submit">
+</div>
 </form>
 
 <div id='planDiv'>
@@ -30,8 +36,8 @@
               dataType: 'json',
               data: { search: request.term },
               success: function(data) {
-                 response($.map(data, function(item) {
-                    return { label: item, value: item }
+                 response($.map(data, function(entity) {
+                    return { label: entity, value: entity }
                  }));
               }
           });
@@ -39,8 +45,8 @@
       minLength: 1
   });
 
-  $('#itemSelect').submit(function() {
-     var postData = { Item: $("input[name='item']").val(), Store: 'default', Tracked: 'default' };
+  $('#entitySelect').submit(function() {
+     var postData = { Entity: $("input[name='entity']").val(), Rank: $("input[name='rank']").val(), Store: 'default', Tracked: 'default' };
      $.ajax({
         url: '/plan',
         type: 'POST',
