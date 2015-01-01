@@ -15,7 +15,7 @@ using namespace std;
 class EntityDefinition {
 
  public:
-    // EntityDefinition();
+    EntityDefinition();
     static string SerializeJson(EntityDefinition *entity);
     static string Dump(const EntityDefinition &item, double quantity);
     bool HasRequirement(EntityDefinition* targetEntity, set<EntityDefinition*> &searched);

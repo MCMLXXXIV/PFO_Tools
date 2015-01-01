@@ -30,6 +30,15 @@ The steps will be
    9. ...
   10. Profit
 
+Warnings
+========
+
+The app can't do some things like give accurate plans for +4 Steel Longswords (or +4 anything) because the +4
+and +5 version of the refined items are jackpot byproducts of making the +0 thru +3 versions of the same
+items.  The reason I mention it is because right now the output of the planner is misleading - because it can't
+estimate the cost of the refined items, it simply includes them, unaggregated, in one of the cost buckets.  EG,
+a Steel Longsword +3 shows 3.06h total crafting time and 5.25 days of XP but the +4 version only shows 1.67h of
+crafting time and 19.08 hours of xp - all because it couldn'tlculate the the cost of 3 Steel Ingots +4.
 
 Status
 ======
@@ -56,19 +65,20 @@ more self-contained.
 TODO
 ====
 
-- [ ] Add unaggregated lines to json and webpage
+- [ ] See about deploying this to heroku
 - [ ] Add "Prefer" to planner - I think all ORs are around ability scores or achievement points - so set a priority list for those two sets to resolve ORs
-- [ ] Add ID to json serialization
 - [ ] JSON deserializer for Supply, Prefer, TrackedResources
-- [ ] Split Quantity from Rank (still planning to conflate Rank and Plus - think about this.  EG, "Steel Blanks +3")
 - [ ] Add achievement flag to Provides list for crafting recipes
 - [ ] add "Provides" nodes to OfficialData digesters
 - [ ] figure out how to and add a proper "make test" target
-- [ ] make the skipping statements more readable
 - [ ] Add the Provides nodes to the bank
 
 - [ ] make the Bank output more readable (maybe skip this and focus on web output)
 
+- [x] Add unaggregated lines to json and webpage
+- [x] Add ID to json serialization
+- [x] Split Quantity from Rank (still planning to conflate Rank and Plus - think about this.  EG, "Steel Blanks +3")
+- [x] make the skipping statements more readable
 - [x] Add verbosity flag to trim down the output
 - [x] Begin to add http framework
 - [x] Clarify the cost output by not showing quantities for things that don't combine - like Feats or "Items"

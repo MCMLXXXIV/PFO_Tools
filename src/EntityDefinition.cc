@@ -22,6 +22,9 @@ ostream &operator<<(ostream &os, const EntityDefinition &item) {
     return os;
 }
 
+EntityDefinition::EntityDefinition() :
+    Name(""), ProcessedSpreadsheetDefinition(false), CreationIncrement(1), Type(NULL) {}
+
 string EntityDefinition::SerializeJson(EntityDefinition *entity) {
     if (entity == NULL) { return ""; }
     string retVal = "{ \"Name\": ";

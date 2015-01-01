@@ -118,6 +118,9 @@ Gate* Planners::GetPlanStep(LineItem *req,
 
     int newGates = 0;
 
+    // set to true below when this req is for rank > 0 but this item has requirements only for rank 0
+    bool rankOverride = false;
+
     // get the requirements for the requested rank
     list < LineItem* > *reqs = NULL;
     if (eTypeHelper->IsRanked(req->Entity->Type[0]) || eTypeHelper->IsType(req->Entity->Type[0], "Item")) {
@@ -128,10 +131,18 @@ Gate* Planners::GetPlanStep(LineItem *req,
 		     "%sthis ranked Entity has no listed Requirements; name: %s\n",
 		     indent, req->Entity->Name.c_str());
 	    reqs = new list< LineItem* >();
-	} else if (req->Entity->Requirements.size() < rank) {
+	} else if (req->Entity->Requirements.size() == 1 && rank > 0) {
+	    // this is for handling +2 longswords - you make them the same as +0 longswords but
+	    // with +2 components.
+	    log->Log(Logger::Level::Verbose, "Planners",
+		     "%sthis Entity only has requirements for rank 0 but the requirement is for rank %d; - going to bump the component ranks; name: %s\n",
+		     indent, rank, req->Entity->Name.c_str());
+	    reqs = &( req->Entity->Requirements[0] );
+	    rankOverride = true;
+	} else if (req->Entity->Requirements.size() <= rank) {
 	    log->Log(Logger::Level::Warn, "Planners",
-		     "%sthis ranked Entity only has requirements for %d ranks but the requirement is for rank %d; name: %s\n",
-		     indent, req->Entity->Requirements.size(), rank, req->Entity->Name.c_str());
+		     "%sthis ranked Entity only has requirements for %d ranks (so up to rank %d) but the requirement is for rank %d; name: %s\n",
+		     indent, req->Entity->Requirements.size(), req->Entity->Requirements.size() - 1, rank, req->Entity->Name.c_str());
 	    reqs = new list< LineItem* >();
 	} else {
 	    reqs = &( req->Entity->Requirements[rank] );
@@ -186,10 +197,15 @@ Gate* Planners::GetPlanStep(LineItem *req,
 	}
 
 	LineItem *gateReq = new LineItem(*subReq);
-	if (eTypeHelper->IsType(subReq->Entity->Type[0], "Item") ||
-	    eTypeHelper->IsType(subReq->Entity->Type[0], "Time")) {
+	if (eTypeHelper->IsType(subReq->Entity->Type[0], "Item")) {
+	    gateReq->Quantity = gateReq->Quantity * manufactureCycles;
+	    if (rankOverride) {
+		gateReq->Rank = req->Rank;
+	    }
+	} else if (eTypeHelper->IsType(subReq->Entity->Type[0], "Time")) {
 	    gateReq->Quantity = gateReq->Quantity * manufactureCycles;
 	}
+
 	
 	//---------------------------------------------------------------------//
 	//                            RECURSION HERE                           //
