@@ -27,6 +27,7 @@
 #include "Utils.h"
 #include "CommandLineOptions.h"
 #include "Log.h"
+#include "WebServerLog.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -162,23 +163,22 @@ static void LogRequest(struct MHD_Connection *connection, int http_code, struct 
     long milliseconds = dur.fractional_seconds() / 1000;
     snprintf(durStr, 511, "%ld.%03ld", seconds, milliseconds);
 
-    printf(
-	   "%s %s %s [%s] \"%s %s %s\" %d %d %d %s %d \"%s\" \"%s\"\n",
-	   remoteHost,
-	   identity.c_str(),
-	   userName.c_str(),
-	   timeStr,
-	   connectionType.c_str(),
-	   conInfo->URI.c_str(),
-	   conInfo->Version.c_str(),
-	   conInfo->RequestSize,
-	   http_code,
-	   conInfo->ResponseSize,
-	   durStr,
-	   queueRetVal,
-	   (referer != NULL ? referer : "-"),
-	   (userAgent != NULL ? userAgent : "-")
-	   );
+    string logline = remoteHost;
+    logline += " " + identity;
+    logline += " " + userName;
+    logline += " [" + string(timeStr) + "]";
+    logline += " \"" + connectionType;
+    logline += " " + conInfo->URI;
+    logline += " " + conInfo->Version + "\"";
+    logline += " " + to_string(conInfo->RequestSize);
+    logline += " " + to_string(http_code);
+    logline += " " + to_string(conInfo->ResponseSize);
+    logline += " " + string(durStr);
+    logline += " " + to_string(queueRetVal);
+    logline += " \"" + string(referer != NULL ? referer : "-") + "\"";
+    logline += " \"" + string(userAgent != NULL ? userAgent : "-") + "\"";
+    
+    WebServerLog::Instance()->EmitLog(logline);
 }
 
 static int SendPage(struct MHD_Connection *connection, const char *page, int status_code, struct connectionInfo *conInfo) {
@@ -530,6 +530,7 @@ int main(int argc, char **argv) {
 
     MicroHttpdTest();
     cout << "test over" << endl;
+    WebServerLog::Instance()->CloseLog();
 
     return 0;
 }
