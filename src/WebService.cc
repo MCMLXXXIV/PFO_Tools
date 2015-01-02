@@ -4,9 +4,9 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #include <microhttpd.h>
-
 #include <cassert>
 
 #include <iostream>
@@ -15,6 +15,7 @@
 #include <map>
 
 #include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "EntityTypeHelper.h"
 #include "OfficialData.h"
@@ -26,6 +27,10 @@
 #include "Utils.h"
 #include "CommandLineOptions.h"
 #include "Log.h"
+
+using namespace std;
+using namespace boost::filesystem;
+using namespace boost::posix_time;
 
 #define PORT            8888
 #define POSTBUFFERSIZE  512
@@ -49,6 +54,12 @@ struct connectionInfo
     map<string, string> *PostData;
     unsigned PostDataSize;
     int PostHandlingError;
+    int CallbackCount;
+    string URI;
+    string Version;
+    int RequestSize;
+    int ResponseSize;
+    ptime TransactionStartTime;
     struct MHD_PostProcessor *PostProcessor;
 };
 
@@ -59,9 +70,6 @@ const char *CompletePage = "<html><body>The upload has been completed.</body></h
 const char *ServererrorPage = "<html><body>An internal server error has occured.</body></html>";
 
 void MicroHttpdTest();
-
-using namespace std;
-using namespace boost::filesystem;
 
 static ssize_t
 file_reader (void *cls, uint64_t pos, char *buf, size_t max)
@@ -84,20 +92,113 @@ int PrintOutKey(void *cls, enum MHD_ValueKind kind, const char *key, const char 
     return MHD_YES;
 }
 
-static int SendPage(struct MHD_Connection *connection, const char *page, int status_code) {
-    int ret;
+// thanks http://www.beej.us/guide/bgnet/output/html/multipage/inet_ntopman.html
+char *get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen)
+{
+    switch(sa->sa_family) {
+    case AF_INET:
+	inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
+		  s, maxlen);
+	break;
+
+    case AF_INET6:
+	inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
+		  s, maxlen);
+	break;
+
+    default:
+	strncpy(s, "Unknown AF", maxlen);
+	return NULL;
+    }
+
+    return s;
+}
+
+static void *RecordOriginalUri(void *cls, const char *uri) {
+    printf ("RecordOriginalUri: %s\n", uri);
+
+    struct connectionInfo *conInfo = new struct connectionInfo;
+    if (NULL == conInfo) {
+	return NULL;
+    }
+    conInfo->CallbackCount = 0;
+    conInfo->URI = string(uri);
+    conInfo->TransactionStartTime = microsec_clock::local_time();
+
+    return conInfo;
+}
+
+static void LogRequest(struct MHD_Connection *connection, int http_code, struct connectionInfo *conInfo, int queueRetVal) {
+
+    struct sockaddr *so;
+    so = MHD_get_connection_info(connection, MHD_CONNECTION_INFO_CLIENT_ADDRESS)->client_addr;
+    char remoteHost[128];
+    memset(remoteHost, 128, '\0');
+    get_ip_str(so, remoteHost, 128);
+
+    const char *referer = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_REFERER);
+    const char *userAgent = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_USER_AGENT);
+    
+    char timeStr[128];
+    memset(timeStr, 128, '\0');
+    const time_t now = time(NULL);
+    struct tm *timeInfo = gmtime(&now);
+    strftime(timeStr, 127, "%d/%b/%Y:%T %z", timeInfo);
+    
+    string identity("-");
+    string userName("-");
+
+    string connectionType = "-";
+    if (conInfo->ConnectionType == POST) {
+	connectionType = "POST";
+    } else if (conInfo->ConnectionType == GET) {
+	connectionType = "GET";
+    }
+
+    time_duration dur = microsec_clock::local_time() - conInfo->TransactionStartTime;
+    char durStr[512];
+    memset(durStr, 512, '\0');
+    long seconds = dur.total_seconds();
+    long milliseconds = dur.fractional_seconds() / 1000;
+    snprintf(durStr, 511, "%ld.%03ld", seconds, milliseconds);
+
+    printf(
+	   "%s %s %s [%s] \"%s %s %s\" %d %d %d %s %d \"%s\" \"%s\"\n",
+	   remoteHost,
+	   identity.c_str(),
+	   userName.c_str(),
+	   timeStr,
+	   connectionType.c_str(),
+	   conInfo->URI.c_str(),
+	   conInfo->Version.c_str(),
+	   conInfo->RequestSize,
+	   http_code,
+	   conInfo->ResponseSize,
+	   durStr,
+	   queueRetVal,
+	   (referer != NULL ? referer : "-"),
+	   (userAgent != NULL ? userAgent : "-")
+	   );
+}
+
+static int SendPage(struct MHD_Connection *connection, const char *page, int status_code, struct connectionInfo *conInfo) {
     struct MHD_Response *response;
     response = MHD_create_response_from_buffer(strlen(page), (void*)page, MHD_RESPMEM_MUST_COPY);
     if (!response) {
 	return MHD_NO;
     }
+    conInfo->ResponseSize = strlen(page);
+
     MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_TYPE, "text/html");
-    ret = MHD_queue_response(connection, status_code, response);
+    int ret = MHD_queue_response(connection, status_code, response);
     MHD_destroy_response(response);
+
+    LogRequest(connection, status_code, conInfo, ret);
+
     return ret;
 }
 
-static int HandleGet(struct MHD_Connection *cxn, const char *url) {
+static int HandleGet(struct MHD_Connection *cxn, const char *url, struct connectionInfo *conInfo) {
 
     string pagePath = "demo_site";
     pagePath += url;
@@ -118,10 +219,12 @@ static int HandleGet(struct MHD_Connection *cxn, const char *url) {
     if (fh == NULL) {
 	printf("Current working directory: %s\n", initial_path().string().c_str());
 	printf("Can't open requested file: %s\n", pagePath.c_str());
-	return SendPage(cxn, NotFound, 404);
+	return SendPage(cxn, NotFound, 404, conInfo);
     }
 
     printf("requestPath = %s; fsPath = %s\n", url, pagePath.c_str());
+
+    conInfo->ResponseSize = fileStat.st_size;
 
     struct MHD_Response *response = MHD_create_response_from_callback(fileStat.st_size, 32 * 1024, &file_reader, fh, &free_callback);
     if (response == NULL) {
@@ -131,6 +234,8 @@ static int HandleGet(struct MHD_Connection *cxn, const char *url) {
 
     int ret = MHD_queue_response(cxn, MHD_HTTP_OK, response);
     MHD_destroy_response(response);
+
+    LogRequest(cxn, MHD_HTTP_OK, conInfo, ret);
 
     return ret;
 
@@ -199,7 +304,7 @@ static int PostIterator(void *coninfo_cls, enum MHD_ValueKind kind, const char *
 
 static void RequestCompleted(void *cls, struct MHD_Connection *con, void **con_cls, enum MHD_RequestTerminationCode toe)
 {
-    printf("RequestCompleted()\n");
+    printf("RequestCompleted() - deleting conInfo\n");
     struct connectionInfo *conInfo = static_cast<connectionInfo*>(*con_cls);
     if (NULL == conInfo) {
 	return;
@@ -229,7 +334,7 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	    //  TODO send error page here
 	    char buffer[1024];
 	    snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
-	    return SendPage(connection, buffer, MHD_HTTP_OK);
+	    return SendPage(connection, buffer, MHD_HTTP_OK, conInfo);
 	}
 	
 	string val = keyValEntry->second;
@@ -238,18 +343,26 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	OfficialData* rulesGraph = OfficialData::Instance();
 	vector<string> entities = rulesGraph->SearchForEntitiesMatchingStrings(val.c_str());
 
-	printf("Got %lu entities from \"%s\"\n", entities.size(), val.c_str());
+	unsigned maxReturnCount = 47;
+	char buf[64];
+	memset(buf, '\0', 64);
+	if (entities.size() > maxReturnCount) {
+	    snprintf(buf, 63, ", but only returning %u of them", maxReturnCount);
+	}
+	printf("Got %lu entities from \"%s\"%s\n", entities.size(), val.c_str(), buf);
 
 	int addSep = 0;
 	string result = "[";
-	vector<string>::iterator itr = entities.begin();
+	auto itr = entities.begin();
+	unsigned entryCount = 0;
 	for(; itr != entities.end(); ++itr) {
 	    if (addSep != 0) { result += ","; } else { addSep = 1; }
 	    result += " \"" + *itr + "\"";
+	    if (++entryCount >= maxReturnCount) { break; }	    
 	}
 	result += " ]";
 	printf("%s\n", result.c_str());
-	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
+	return SendPage(connection, result.c_str(), MHD_HTTP_OK, conInfo);
     }
 
     if (strncmp("/plan", url, strlen("/plan")) == 0) {
@@ -259,7 +372,7 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	    //  TODO send error page here
 	    char buffer[1024];
 	    snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
-	    return SendPage(connection, buffer, MHD_HTTP_OK);
+	    return SendPage(connection, buffer, MHD_HTTP_OK, conInfo);
 	}
 	string entityName = keyValEntry->second;
 	printf("Getting plan for entity: [%s]\n", entityName.c_str());
@@ -291,12 +404,12 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	string result = Planners::CreatePlanForItemGoalForWeb(entityName.c_str(), rank, store, tracked);
 	printf("returning for plan: %s\n", result.c_str());
 
-	return SendPage(connection, result.c_str(), MHD_HTTP_OK);
+	return SendPage(connection, result.c_str(), MHD_HTTP_OK, conInfo);
     }
 
     char buffer[1024];
     snprintf(buffer, sizeof(buffer), "[ \"foo\", \"orange\" ]");
-    return SendPage(connection, buffer, MHD_HTTP_OK);
+    return SendPage(connection, buffer, MHD_HTTP_OK, conInfo);
 }
 
 static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
@@ -308,22 +421,36 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 			      void **con_cls)
 {
     printf("AnswerToConnection - ENTRY\n");
-    if (NULL == *con_cls) {
-	printf("AnswerToConnection - no con_cls yet\n");
-	// fisrt time calling this for the connection
-	struct connectionInfo *conInfo;
+
+    // con_cls will be created by the logging callback, RecordOriginalUri
+    assert(NULL != *con_cls);
+    
+    struct connectionInfo *conInfo = static_cast<connectionInfo*>(*con_cls);
+    int timesWeveBeenCalledBack = conInfo->CallbackCount;
+    printf("AnswerToConnection - callback count = %d\n", timesWeveBeenCalledBack);
+
+    if (timesWeveBeenCalledBack == 0) {
+	printf("AnswerToConnection - first callback\n");
+	// first time calling this for the connection
 
 	if (nr_of_clients >= MAXCLIENTS) {
-	    return SendPage(connection, BusyPage, MHD_HTTP_SERVICE_UNAVAILABLE);
+	    return SendPage(connection, BusyPage, MHD_HTTP_SERVICE_UNAVAILABLE, conInfo);
 	}
 
-	conInfo = new struct connectionInfo;
-	if (NULL == conInfo) {
-	    return MHD_NO;
-	}
 	conInfo->PostData = new map<string,string>();
 	conInfo->PostDataSize = 0;
 	conInfo->PostHandlingError = 0;
+	conInfo->RequestSize = -1;
+	conInfo->CallbackCount = 1;
+	conInfo->Version = version;
+	conInfo->ResponseSize = 0;
+
+	if (NULL != upload_data_size) {
+	    conInfo->RequestSize = *upload_data_size;
+	}
+
+	//MHD_get_connection_values(connection, MHD_HEADER_KIND, PrintOutKey, NULL);
+	//MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, PrintOutKey, NULL);
 
 	if (0 == strcmp(method, "POST")) {
 	    conInfo->PostProcessor = MHD_create_post_processor(connection, POSTBUFFERSIZE, PostIterator, (void*)conInfo);
@@ -339,17 +466,27 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 	    conInfo->ConnectionType = GET;
 	}
 
-	*con_cls = (void*)conInfo;
 	return MHD_YES;
     }
 
+    if (NULL != upload_data_size) {
+	int uploadSize = *upload_data_size;
+	int updatedSize = conInfo->RequestSize + uploadSize;
+	if (conInfo->RequestSize != updatedSize) {
+	    printf("updating uploadSize from %d to %d\n", conInfo->RequestSize, updatedSize);
+	    conInfo->RequestSize = updatedSize;
+	}
+    }
+
+
     if (0 == strcmp(method, "GET")) {
+	conInfo->CallbackCount++;
 	printf("AnswerToConnection - handling GET\n");
-	return HandleGet(connection, url);
+	return HandleGet(connection, url, conInfo);
     }
 
     if (0 == strcmp(method, "POST")) {
-	struct connectionInfo *conInfo = static_cast<connectionInfo*>(*con_cls);
+	conInfo->CallbackCount++;
 	if (0 != *upload_data_size) {
 	    printf("AnswerToConnection - processing POST\n");
 	    MHD_post_process(conInfo->PostProcessor, upload_data, *upload_data_size);
@@ -362,7 +499,7 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 	    return HandlePost(connection, url, conInfo);
 	}
     }
-    return SendPage(connection, ErrorPage, MHD_HTTP_BAD_REQUEST);
+    return SendPage(connection, ErrorPage, MHD_HTTP_BAD_REQUEST, conInfo);
 }
 
 void MicroHttpdTest() {
@@ -373,6 +510,7 @@ void MicroHttpdTest() {
 			      NULL, NULL,  // policy callback - none here
 			      &AnswerToConnection, NULL,
 			      MHD_OPTION_NOTIFY_COMPLETED, RequestCompleted, NULL, // FxnPtr MHD_RequestCompletedCallback() and ptr to callback arg (may be NULL)
+			      MHD_OPTION_URI_LOG_CALLBACK, RecordOriginalUri, NULL,
 			      MHD_OPTION_END);
 
     if (NULL == daemon) {

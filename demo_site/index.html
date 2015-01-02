@@ -2,7 +2,7 @@
 <head>
   <link href="CSS/index.css" rel="stylesheet">
   <link href="jquery-ui-1.11.2.custom/jquery-ui.css" rel="stylesheet">
-  <link rel="stylesheet" href="//cdn.smtcs.rocks/md/md.css">
+  <!-- <link rel="stylesheet" href="//cdn.smtcs.rocks/md/md.css">  -->
   <script src="jquery-ui-1.11.2.custom/external/jquery/jquery.js"></script>
   <script src="jquery-ui-1.11.2.custom/jquery-ui.js"></script>
   <script src="Scripts/createCostDiv.js"></script>
@@ -21,12 +21,11 @@
     </div>
   </div>
 </nav>
-<h1>Pathfinder Online "Official Data" Viewer</h1>
 
-<form id='entitySelect'>
+<form id='entitySelect' class="col s12">
 <label for="autocomplete">Select an Entity: </label>
 <input id="autocomplete" name='entity'>
-<div id='formRankDiv'>
+<div id='formRankDiv' class="input-field col s1">
 <label for="rankSelector">Enter Rank, if any: </label>
 <input id="rankSelector" type='text' name='rank' maxlength="2">
 <input id="submitBut" type='submit' text="Submit">

@@ -253,7 +253,7 @@ vector<string> OfficialData::SearchForEntitiesMatchingStrings(const char *buf)
 
     vector<string> retVal;
     matchingEntities.sort();
-    list<string>::iterator matchingEntry = matchingEntities.begin();
+    auto matchingEntry = matchingEntities.begin();
     for(; matchingEntry != matchingEntities.end(); ++matchingEntry) {
 	retVal.push_back(*matchingEntry);
     }

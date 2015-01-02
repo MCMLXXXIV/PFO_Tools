@@ -5,3 +5,7 @@ div#formRankDiv {
 div#formRankDiv input#rankSelector {
     width: 25;
 }
+
+form#entitySelect {
+    margin: 10px;
+}
