@@ -28,6 +28,7 @@
 #include "CommandLineOptions.h"
 #include "Log.h"
 #include "WebServerLog.h"
+#include "WebClientRequestArgs.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -52,12 +53,13 @@ static unsigned int nr_of_clients = 0;
 struct connectionInfo
 {
     int ConnectionType;
-    map<string, string> *PostData;
+    WebClientRequestArgs *RequestArgs;
     unsigned PostDataSize;
     int PostHandlingError;
     int CallbackCount;
     string URI;
     string Version;
+    string PlanItem;
     int RequestSize;
     int ResponseSize;
     ptime TransactionStartTime;
@@ -171,6 +173,7 @@ static void LogRequest(struct MHD_Connection *connection, int http_code, struct 
     logline += " " + conInfo->URI;
     logline += " " + conInfo->Version + "\"";
     logline += " " + to_string(conInfo->RequestSize);
+    logline += " [" + conInfo->PlanItem + "]";
     logline += " " + to_string(http_code);
     logline += " " + to_string(conInfo->ResponseSize);
     logline += " " + string(durStr);
@@ -258,7 +261,7 @@ static int PostIterator(void *coninfo_cls, enum MHD_ValueKind kind, const char *
 
     if (conInfo->PostHandlingError == 0) {
 	if (size > 0) {
-	    assert (conInfo->PostData != NULL);
+	    assert (conInfo->RequestArgs != NULL);
 
 	    string keyStr = key;
 	    string valStr = data;
@@ -269,28 +272,14 @@ static int PostIterator(void *coninfo_cls, enum MHD_ValueKind kind, const char *
 	    if (newSize > MAXPOSTSIZE) {
 		printf("Too much post data (%lu bytes; max: %d) - will not process this post\n", newSize, MAXPOSTSIZE);
 		conInfo->PostHandlingError = 1;
-		delete(conInfo->PostData);
-		conInfo->PostData = NULL;
+		delete(conInfo->RequestArgs);
+		conInfo->RequestArgs = NULL;
 		conInfo->PostDataSize = 0;
 	    } else {
 		printf("adding map[%s] = '%s'\n", keyStr.c_str(), valStr.c_str());
 		conInfo->PostDataSize = newSize;
-		if ((conInfo->PostData)->find(keyStr) == (conInfo->PostData)->end()) {
-		    (*(conInfo->PostData))[keyStr] = valStr;
-		} else {
-		    if (off > 0) {
-			// add more data to the value
-			string newVal = ((conInfo->PostData)->find(keyStr))->second;
-			newVal += valStr;
-			(*(conInfo->PostData))[keyStr] = newVal;
-		    } else {
-			printf("WARNING: we got another value for the key %s - I don't handle this right now so returning an error\n", key);
-			conInfo->PostHandlingError = 1;
-			delete(conInfo->PostData);
-			conInfo->PostData = NULL;
-			conInfo->PostDataSize = 0;
-		    }
-		}
+		bool appendedValue = off > 0;
+		conInfo->RequestArgs->AddKeyVal(keyStr, valStr, appendedValue);
 	    }
 	} else {
 	    printf("PostIterator called with less than one bytes\n");
@@ -315,8 +304,8 @@ static void RequestCompleted(void *cls, struct MHD_Connection *con, void **con_c
 	    MHD_destroy_post_processor(conInfo->PostProcessor);
 	    nr_of_clients--;
 	}
-	if (conInfo->PostData != NULL) {
-	    delete conInfo->PostData;
+	if (conInfo->RequestArgs != NULL) {
+	    delete conInfo->RequestArgs;
 	}
     }
     delete conInfo;
@@ -328,8 +317,8 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
     printf("HandlePost(%s)\n", url);
     if (strncmp("/entities", url, strlen("/entities")) == 0) {
 	// search
-	map<string,string>::iterator keyValEntry = conInfo->PostData->find("search");
-	if (keyValEntry == conInfo->PostData->end()) {
+	auto keyValEntry = conInfo->RequestArgs->ArgMap.find("search");
+	if (keyValEntry == conInfo->RequestArgs->ArgMap.end()) {
 	    printf("bad search - no value for key 'search'\n");
 	    //  TODO send error page here
 	    char buffer[1024];
@@ -366,8 +355,8 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
     }
 
     if (strncmp("/plan", url, strlen("/plan")) == 0) {
-	auto keyValEntry = conInfo->PostData->find("Entity");
-	if (keyValEntry == conInfo->PostData->end()) {
+	auto keyValEntry = conInfo->RequestArgs->ArgMap.find("Entity");
+	if (keyValEntry == conInfo->RequestArgs->ArgMap.end()) {
 	    printf("bad plan request - no value for key 'Entity'\n");
 	    //  TODO send error page here
 	    char buffer[1024];
@@ -375,27 +364,28 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	    return SendPage(connection, buffer, MHD_HTTP_OK, conInfo);
 	}
 	string entityName = keyValEntry->second;
+	conInfo->PlanItem = entityName;
 	printf("Getting plan for entity: [%s]\n", entityName.c_str());
 
-	keyValEntry = conInfo->PostData->find("Store");
+	keyValEntry = conInfo->RequestArgs->ArgMap.find("Store");
 	string storeSerialized = "default";
-	if (keyValEntry != conInfo->PostData->end()) {
+	if (keyValEntry != conInfo->RequestArgs->ArgMap.end()) {
 	    storeSerialized = keyValEntry->second;
 	}
 
 	Supply *store = Supply::Deserialize(storeSerialized.c_str());
 
-	keyValEntry = conInfo->PostData->find("Tracked");
+	keyValEntry = conInfo->RequestArgs->ArgMap.find("Tracked");
 	string trackedSerialized = "default";
-	if (keyValEntry != conInfo->PostData->end()) {
+	if (keyValEntry != conInfo->RequestArgs->ArgMap.end()) {
 	    trackedSerialized = keyValEntry->second;
 	}
 
 	TrackedResources *tracked = TrackedResources::Deserialize(trackedSerialized.c_str());
 
 	unsigned rank = 0;
-	keyValEntry = conInfo->PostData->find("Rank");
-	if (keyValEntry != conInfo->PostData->end()) {
+	keyValEntry = conInfo->RequestArgs->ArgMap.find("Rank");
+	if (keyValEntry != conInfo->RequestArgs->ArgMap.end()) {
 	    rank = atoi(keyValEntry->second.c_str());
 	}
 
@@ -437,7 +427,7 @@ static int AnswerToConnection(void *cls, struct MHD_Connection *connection,
 	    return SendPage(connection, BusyPage, MHD_HTTP_SERVICE_UNAVAILABLE, conInfo);
 	}
 
-	conInfo->PostData = new map<string,string>();
+	conInfo->RequestArgs = new WebClientRequestArgs();
 	conInfo->PostDataSize = 0;
 	conInfo->PostHandlingError = 0;
 	conInfo->RequestSize = -1;

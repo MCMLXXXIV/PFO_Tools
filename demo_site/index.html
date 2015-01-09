@@ -57,7 +57,7 @@
   });
 
   $('#entitySelect').submit(function() {
-     var postData = { Entity: $("input[name='entity']").val(), Rank: $("input[name='rank']").val(), Store: 'default', Tracked: 'default' };
+     var postData = { Entity: $("input[name='entity']").val(), Rank: $("input[name='rank']").val(), Store: 'default', Tracked: 'default', OrPriority: [ "AbilityScore.Constitution", "AbilityScore.Strength" ] };
      $.ajax({
         url: '/plan',
         type: 'POST',

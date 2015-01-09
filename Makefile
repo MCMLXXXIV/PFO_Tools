@@ -14,7 +14,7 @@ ODIR := obj
 SDIR := src
 BDIR := bin
 
-_OBJS = LineItem.o OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o EntityTypeHelper.o EntityDefinition.o Gate.o HierarchicalId.o Utils.o CommandLineOptions.o Log.o WebServerLog.o
+_OBJS = LineItem.o OfficialData.o Supply.o TrackedResources.o Cost.o Plan.o Planners.o EntityTypeHelper.o EntityDefinition.o Gate.o HierarchicalId.o Utils.o CommandLineOptions.o Log.o WebServerLog.o WebClientRequestArgs.o
 
 OBJS=$(addprefix $(ODIR)/,$(_OBJS))
 
@@ -45,7 +45,7 @@ $(ODIR)/HierarchicalId.o :     $(patsubst %,$(SDIR)/%,HierarchicalId.h)
 $(ODIR)/Utils.o :              $(patsubst %,$(SDIR)/%,Utils.h)
 $(ODIR)/CommandLineOptions.o : $(patsubst %,$(SDIR)/%,CommandLineOptions.h)
 $(ODIR)/main.o :               $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h Log.h LineItem.h Utils.h)
-$(ODIR)/WebService.o :         $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h WebServerLog.h)
+$(ODIR)/WebService.o :         $(patsubst %,$(SDIR)/%,OfficialData.h Planners.h Supply.h TrackedResources.h Cost.h Plan.h CommandLineOptions.h WebServerLog.h WebClientRequestArgs.h)
 
 $(ODIR):
 	mkdir $(ODIR)
