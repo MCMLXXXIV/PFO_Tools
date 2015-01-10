@@ -28,6 +28,11 @@
 # what how the new files will be renamed.  IE, because the new file named Cantrip has the md5sum of
 # the Reactive file, it will be renamed Reactive.
 
+# make them like this:
+# ( cd official_data_20141206 &&  find . -type f -print0 | xargs -0 md5sum | sort ) > good_but_old
+# ( cd official_data_20141231 &&  find . -type f -print0 | xargs -0 md5sum | sort ) > bad
+
+
 use strict;
 use warnings;
 use FileHandle;
