@@ -6,7 +6,7 @@ Tools to help plan item creation, training, and achievement farming for Pathfind
 Goal/Plan
 =========
 
-I'll need to consume data from an xls spreadsheet.  I want to do this all in c/c++ but I can't find a
+I'll need to consume data from an xlxs spreadsheet.  I want to do this all in c/c++ but I can't find a
 library to do this.  I spent two days trying to get libxls to work before I realized that it only
 works on .xls files, not .xlsx files - which is the requirement.
 
@@ -28,7 +28,7 @@ The steps will be
    7. rename and copy into the official_data dir as RecipeYields_Crowdforged.csv
    8. run src/arch_test
    9. ...
-  10. Profit
+   10. Profit
 
 Warnings
 ========
@@ -53,10 +53,12 @@ need to add a more detailed dumper of the entities to make sure of correctness.
 The first solution planner (for items) is in and working - but not yet complete (see TODOs).
 
 I wanted to demo this as a webservice but due to Cross-origin resource sharing (CORS) restrictions, I don't
-think that will work so well.  So I will expand my use of the microhttpd to also serve some demo functionality.
+think that will work so well - but maybe I just have to learn how.  As for now,  I will expand my use of the
+microhttpd to also serve some demo functionality.
 
 Ultimately, this seems like a module for a webserver - but the only gotcha is that I don't want the webserver
-to have to read, parse all the data files for every request - it should just keep the data in memory.
+to have to read, parse all the data files for every request - it should just keep the data in memory - which
+is what my httpd service does.
 
 For the demo web page, I've imported a download of jquery-ui.  I wasn't sure if I should check it in - but
 I'm doing it now because 1) I don't think it breaks any license agreements, and 2) it makes this thing
@@ -107,6 +109,34 @@ BUGS
 Nice to have:
 I want a proper logging framework - like maybe http://logging.apache.org/log4cxx/index.html - but
 for now I'll just write stuff to stdout.
+
+Problems consuming Official Data as a Microsoft file
+====================================================
+
+The latest official data drop on 31 Dec 2014 confuses xlsx2csv.py - unless I am doing something
+wrong - a distinct possibility.  The python script marshalls the workbook to many csv docs - and
+as far as I know right now, it still does this correctly.  But it doesn't name the files
+correctly - somehow the worksheet name to resulting file name is off.  I've md5sum'd the
+resulting files and all the md5s from the previous version exist in the directory of files for
+the new version - all but one - which is expected because only one sheet was updated.  But the
+md5s indicate that the files have different names.
+
+EG:
+old_good:
+   014d3e4b88b5a8824cfc2573270d1bbc  o/Reactive Advancement.csv
+   7dd803f501c79e20b48e64297dd72ebb  o/Cantrip Advancement.csv
+
+new_bad:
+   014d3e4b88b5a8824cfc2573270d1bbc  oA/Cantrip Advancement.csv
+   735974ead640193605fd81582e37af2c  oA/Reactive Advancement.csv
+   7dd803f501c79e20b48e64297dd72ebb  oA/Armor Advancement.csv
+
+So you can see that for the new data, the Reactive file has been incorrectly named Cantrip.  They
+both have the same md5sum - so they are exactly the same - but the file name is different/wrong.
+
+It drives me crazy how hard it is to use Microsoft generated stuff in a non-Microsoft environment.
+
+So I wrote scripts/rename_sheets.pl to fix it this time.
 
 Notes on libmicrohttpd
 ======================
