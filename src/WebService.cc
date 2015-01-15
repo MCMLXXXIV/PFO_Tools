@@ -60,6 +60,7 @@ struct connectionInfo
     string URI;
     string Version;
     string PlanItem;
+    int PlanRank;
     int RequestSize;
     int ResponseSize;
     ptime TransactionStartTime;
@@ -174,6 +175,7 @@ static void LogRequest(struct MHD_Connection *connection, int http_code, struct 
     logline += " " + conInfo->Version + "\"";
     logline += " " + to_string(conInfo->RequestSize);
     logline += " [" + conInfo->PlanItem + "]";
+    logline += " " + to_string(conInfo->PlanRank);
     logline += " " + to_string(http_code);
     logline += " " + to_string(conInfo->ResponseSize);
     logline += " " + string(durStr);
@@ -387,6 +389,7 @@ static int HandlePost(struct MHD_Connection *connection, const char *url, struct
 	keyValEntry = conInfo->RequestArgs->ArgMap.find("Rank");
 	if (keyValEntry != conInfo->RequestArgs->ArgMap.end()) {
 	    rank = atoi(keyValEntry->second.c_str());
+	    conInfo->PlanRank = rank;
 	}
 
 	// returns json

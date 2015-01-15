@@ -132,8 +132,9 @@ Gate* Planners::GetPlanStep(LineItem *req,
 		     indent, req->Entity->Name.c_str());
 	    reqs = new list< LineItem* >();
 	} else if (req->Entity->Requirements.size() == 1 && rank > 0) {
-	    // this is for handling +2 longswords - you make them the same as +0 longswords but
-	    // with +2 components.
+	    // this is for handling items with pluses.  You make them the same as the normal, +0, items
+	    // but with "plus" ingredients.  EG, +2 longswords - you make them the same as +0 longswords
+	    // but with +2 components.
 	    log->Log(Logger::Level::Verbose, "Planners",
 		     "%sthis Entity only has requirements for rank 0 but the requirement is for rank %d; - going to bump the component ranks; name: %s\n",
 		     indent, rank, req->Entity->Name.c_str());

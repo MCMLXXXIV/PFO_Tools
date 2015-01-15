@@ -93,7 +93,7 @@ string LineItem::SerializeJson(LineItem *lineItem) {
     if (lineItem == NULL) { return "{}"; }
 
     string retVal = "{ \"Name\": ";
-    retVal += "\"" + lineItem->Entity->Name + "\"";
+    retVal += "\"" + EntityTypeHelper::Instance()->GetTypePrettyString(lineItem->Entity->Type) + "\"";
     retVal += ", \"Rank\": ";
     retVal += to_string(lineItem->Rank);
     retVal += ", \"Quantity\": ";

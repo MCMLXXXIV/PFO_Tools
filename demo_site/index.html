@@ -7,6 +7,7 @@
   <script src="jquery-ui-1.11.2.custom/jquery-ui.js"></script>
   <script src="Scripts/createCostDiv.js"></script>
   <script src="Scripts/createBankDiv.js"></script>
+  <script src="Scripts/createTopLevelRequirementsDiv.js"></script>
   <script src="Scripts/utils.js"></script>
 </head>
 <body>
@@ -57,7 +58,8 @@
   });
 
   $('#entitySelect').submit(function() {
-     var postData = { Entity: $("input[name='entity']").val(), Rank: $("input[name='rank']").val(), Store: 'default', Tracked: 'default', OrPriority: [ "AbilityScore.Constitution", "AbilityScore.Strength" ] };
+     var rank = $("input[name='rank']").val();
+     var postData = { Entity: $("input[name='entity']").val(), Rank: rank, Store: 'default', Tracked: 'default', OrPriority: [ "AbilityScore.Constitution", "AbilityScore.Strength" ] };
      $.ajax({
         url: '/plan',
         type: 'POST',
@@ -66,6 +68,7 @@
         success: function(data) {
            plan = data;
            $('#planDiv').empty();
+           CreateTopLevelRequirementsDiv(plan[0].ItemDeep.Requirements, rank).appendTo('#planDiv');
            CreateCostDiv(plan[0].Cost).appendTo('#planDiv');
            CreateBankDiv(plan[0].Bank).appendTo('#planDiv');
         },
