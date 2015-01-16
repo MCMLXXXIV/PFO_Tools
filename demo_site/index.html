@@ -9,6 +9,8 @@
   <script src="Scripts/createBankDiv.js"></script>
   <script src="Scripts/createTopLevelRequirementsDiv.js"></script>
   <script src="Scripts/utils.js"></script>
+
+
 </head>
 <body>
 <nav id="front-page-nav" class="cyan lighten-1">
@@ -28,21 +30,24 @@
 <input id="autocomplete" name='entity'>
 <div id='formRankDiv' class="input-field col s1">
 <label for="rankSelector">Enter Rank or plus, if any: </label>
-<input id="rankSelector" type='text' name='rank' maxlength="2">
+<input id="rankSelector" type='text' name='rank' maxlength="2" value="0">
 <input id="submitBut" type='submit' text="Submit">
 </div>
 </form>
-
+<div id='refLink'></div>
 <div id='planDiv'>
 </div>
 
-<script type="text/javascript">
+<hr />
+Not sure yet about licensing or anything like that but here's the current source: <a href="http://github.com/MCMLXXXIV/PFO_Tools" target="_blank">http://github.com/MCMLXXXIV/PFO_Tools</a>
 
-  var plan;
-
-  $('#autocomplete').autocomplete({
-      source: function(request, response) {
-          $.ajax({
+  <script type="text/javascript">
+    
+    var plan;
+    
+    $('#autocomplete').autocomplete({
+        source: function(request, response) {
+            $.ajax({
               url: '/entities',
               type: 'POST',
               dataType: 'json',
@@ -55,12 +60,13 @@
           });
       },
       minLength: 1
-  });
+    });
 
-  $('#entitySelect').submit(function() {
-     var rank = $("input[name='rank']").val();
-     var postData = { Entity: $("input[name='entity']").val(), Rank: rank, Store: 'default', Tracked: 'default', OrPriority: [ "AbilityScore.Constitution", "AbilityScore.Strength" ] };
-     $.ajax({
+    $('#entitySelect').submit(function() {
+       var entity = $("input[name='entity']").val();
+       var rank = $("input[name='rank']").val();
+       var postData = { Entity: entity, Rank: rank, Store: 'default', Tracked: 'default', OrPriority: [ "AbilityScore.Constitution", "AbilityScore.Strength" ] };
+       $.ajax({
         url: '/plan',
         type: 'POST',
         data: postData,
@@ -71,19 +77,31 @@
            CreateTopLevelRequirementsDiv(plan[0].ItemDeep.Requirements, rank).appendTo('#planDiv');
            CreateCostDiv(plan[0].Cost).appendTo('#planDiv');
            CreateBankDiv(plan[0].Bank).appendTo('#planDiv');
+           var refLink = $('<a></a>').attr('href', '?entity=' + entity + '&rank=' + rank).text('linkBack');
+           $('#refLink').empty().append(refLink);
         },
         error: function(jqXHR, textStatus, errorThrown) {
            console.log("Ajax error: " + textStatus + "; " + errorThrown);
         }
-     });
-     return false;
-  });
+       });
+       return false;
+    });
 
-  $(function() {
-     // handler for .ready() called
-  });
+    $(function() {
+       // handler for .ready() called
+
+       // we might have entity and rank in the url
+       var entity = getUrlParameters("entity", "", true);
+       var rank = getUrlParameters("rank", "", true);
+       if (rank != false) {
+          $("input[name='rank']").val(rank);
+       }
+       if (entity != false) {
+          $("input[name='entity']").val(entity);
+          $('#entitySelect').trigger("submit");
+       }
+    });
 </script>
-<hr />
-Not sure yet about licensing or anything like that but here's the current source: <a href="http://github.com/MCMLXXXIV/PFO_Tools" target="_blank">http://github.com/MCMLXXXIV/PFO_Tools</a>
+
 </body>
 </html>
