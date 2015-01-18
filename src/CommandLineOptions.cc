@@ -7,25 +7,29 @@
 #include <unistd.h>
 #include <cstdio>
 
-CommandLineOptionsEncapsulation::CommandLineOptionsEncapsulation() {
-    ShowHelpOpt = false;
-    DumpItems = false;
-    DumpItemReqs = false;
-    GetPlanForItem = false;
-    ParseError = false;
-    SearchForItemsThatRequire = false;
-    ParseFile = false;
-    VerbosityLevel = 99;
-    LoggingTags = "";
-}
+CommandLineOptionsEncapsulation::CommandLineOptionsEncapsulation() :
+    ShowHelpOpt(false),
+    DumpItems(false),
+    DumpItemReqs(false),
+    GetPlanForItem(false),
+    ParseError(false),
+    SearchForItemsThatRequire(false),
+    ParseFile(false),
+    ShowDataFileCoverage(false),
+    LoggingTags(""),
+    VerbosityLevel(99)
+{ }
 
 bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
     int opt;
 
-    while ((opt = getopt(argc, argv, "hdr:p:P:R:t:v:")) != -1) {
+    while ((opt = getopt(argc, argv, "hcdr:p:P:R:t:v:")) != -1) {
 	switch (opt) {
 	case 'h':
 	    ShowHelpOpt = true;
+	    break;
+	case 'c':
+	    ShowDataFileCoverage = true;
 	    break;
 	case 'd':
 	    DumpItems = true;
@@ -65,7 +69,7 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
         printf("\n");
     }
 
-    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem && !SearchForItemsThatRequire && !ParseFile) {
+    if (!ShowHelpOpt && !DumpItems && !DumpItemReqs && !GetPlanForItem && !SearchForItemsThatRequire && !ParseFile && !ShowDataFileCoverage) {
 	ParseError = true;
 	ErrMsg = "no (valid) args";
     }
@@ -74,8 +78,9 @@ bool CommandLineOptionsEncapsulation::ParseArgs(int argc, char **argv) {
 }
 
 void CommandLineOptionsEncapsulation::ShowHelp() {
-    cout << "arch_test [-h] [-d] [[-r] item[,item2]] [[-p] item[,item2]] [-P file] [-R item] [-t tag1[,tag2]] [-v level]" << endl;
+    cout << "arch_test [-h] [-c] [-d] [[-r] item[,item2]] [[-p] item[,item2]] [-P file] [-R item] [-t tag1[,tag2]] [-v level]" << endl;
     cout << "   [-h]               show this mesage" << endl
+	 << "   [-c]               check which datafiles are and are not being parsed" << endl
 	 << "   [-d]               dump all parsed entities" << endl
 	 << "   [-r item[,item2]]  dump the known requirements for the item(s)" << endl
 	 << "   [-p item[,item2]]  show a plan to create the item(s)" << endl

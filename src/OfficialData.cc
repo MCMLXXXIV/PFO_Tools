@@ -270,6 +270,55 @@ void OfficialData::Dump() {
     }
 }
 
+void OfficialData::ShowDataFileCoverage() {
+    cout << "TODO: add directory arg to -c option; assuming official_data for now" << endl;
+
+    string directoryName("official_data");
+
+    DIR *dp;
+    struct dirent *dirp;
+
+    dp = opendir(directoryName.c_str());
+    if (dp == NULL) {
+	Logger::Instance()->Log(Logger::Level::Error, "", "Failed to open %s: %s (%d)\n", directoryName.c_str(), strerror(errno), errno);
+	return;
+    }
+
+    list<string> parsed;
+    list<string> unparsed;
+    while ((dirp = readdir(dp))) {
+	struct stat filestat;
+
+	string fname = dirp->d_name;
+	string filepath = directoryName + "/" + fname;
+
+	if (stat( filepath.c_str(), &filestat)) continue;
+	if (S_ISDIR( filestat.st_mode)) continue;
+
+	if (FileProcessorMap[fname]) {
+	    parsed.push_back(fname);
+	    // cout << "    Parsed " << fname << endl;
+	} else {
+            unparsed.push_back(fname);
+	    // cout << "Not Parsed " << fname << endl;
+	}
+    }
+    closedir(dp);
+
+    parsed.sort();
+    unparsed.sort();
+    
+    cout << "Parsed:" << endl;
+    for (auto itr = parsed.begin(); itr != parsed.end(); ++itr) {
+	cout << "    " << *itr << endl;
+    }
+
+    cout << endl << "Unparsed:" << endl;
+    for (auto itr = unparsed.begin(); itr != unparsed.end(); ++itr) {
+	cout << "    " << *itr << endl;
+    }
+}
+
 bool OfficialData::ParseAndStoreCraftingRecipeFile(string fn, bool testRun) {
     return this->ParseAndStoreRecipeFile(fn, testRun, "Craft");
 }
@@ -796,6 +845,31 @@ bool OfficialData::ParseAndStoreProgressionFile(string fn, bool testRun, string 
 
     return true;
 }
+
+// dbl@fish... echo ; find official_data/ -print0 | while read -d $'\0' f ; do echo $f | grep -q -q Achievement || continue ;  echo $(head -1  "$f") ' <---> ' $f ; done | sort
+
+// Display Name,Description,Feat Req List  <--->  official_data/Feat Achievements.csv
+// SlotName,Display Name,Description,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Flag,Crafting Keyword,Plus,,,,Figure Feat,Figure Tier,Figure Rarity  <--->  official_data/Crafting Achievements.csv
+// SlotName,Display Name,Description,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Flag,Crafting Keyword,Plus,,,,Figure Feat,Figure Tier,Figure Rarity  <--->  official_data/Refining Achievements.csv
+// SlotName,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Display Name,Description,Counter Name,Counter Value  <--->  official_data/Player Kill Achievements.csv
+// SlotName,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Display Name,Description,Counter Name,Counter Value,Race  <--->  official_data/NPC KIll Achievements.csv
+// SlotName,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Display Name,Description,Counter Name,Counter Value,Weapon Proficiency  <--->  official_data/Weapon Kill Achievements.csv
+// SlotName,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Display Name,Description,Counter (Or Flag),Counter Value,Interaction Keyword  <--->  official_data/Interaction Achievements.csv
+// SlotName,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Display Name,Description,Flag Name,Location Name  <--->  official_data/Settlement Location Achievement.csv
+// SlotName,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Display Name,Description,Flag Name,Location Name  <--->  official_data/Special Location Achievements.csv
+// SlotName,Level,Adventure,Arcane,Crafting,Divine,Martial,Social,Subterfuge,Display Name,Description,Flag Req List  <--->  official_data/Meta Achievements.csv
+
+// there are lots of kinds of Achievement file formats:
+// SlotName,Display Name,Description,Level,A,A,C,D,M,S,S,Flag,Crafting Keyword,Plus,,,,Figure Feat,Figure Tier,Figure Rarity <--> Crafting/Refining
+// SlotName,Level,A,A,C,D,M,S,S,Display Name,Description,Counter Name,Counter Value                           <--->  Player Kill Achievements.csv
+// SlotName,Level,A,A,C,D,M,S,S,Display Name,Description,Counter Name,Counter Value,Race                      <--->  NPC KIll Achievements.csv
+// SlotName,Level,A,A,C,D,M,S,S,Display Name,Description,Counter Name,Counter Value,Weapon Proficiency        <--->  Weapon Kill Achievements.csv
+// SlotName,Level,A,A,C,D,M,S,S,Display Name,Description,Counter (Or Flag),Counter Value,Interaction Keyword  <--->  Interaction Achievements.csv
+// SlotName,Level,A,A,C,D,M,S,S,Display Name,Description,Flag Name,Location Name                              <--->  Settlement Location Achievement.csv
+// SlotName,Level,A,A,C,D,M,S,S,Display Name,Description,Flag Name,Location Name                              <--->  Special Location Achievements.csv
+// SlotName,Level,A,A,C,D,M,S,S,Display Name,Description,Flag Req List                                        <--->  Meta Achievements.csv
+
+// We already have the crafting/refining achievements in - though not complete I think
 
 bool OfficialData::ParseAndStoreFeatAchievements(string fn, bool testRun) {
     EntityTypeHelper* typeHelper = EntityTypeHelper::Instance();

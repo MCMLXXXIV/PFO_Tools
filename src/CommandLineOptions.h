@@ -18,6 +18,7 @@ class CommandLineOptionsEncapsulation {
     bool ParseError;
     bool SearchForItemsThatRequire;
     bool ParseFile;
+    bool ShowDataFileCoverage;
 
     string LoggingTags;
     int VerbosityLevel;

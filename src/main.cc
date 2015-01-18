@@ -52,6 +52,11 @@ int main(int argc, char **argv) {
 	return 1;
     }    
 
+    if (opts.ShowDataFileCoverage) {
+	OfficialData::Instance()->ShowDataFileCoverage();
+	return 0;
+    }
+
     OfficialData* rulesGraph = OfficialData::Instance();
     if (opts.ParseFile) {
 	rulesGraph->TestParseFile(opts.Items);

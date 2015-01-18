@@ -18,6 +18,7 @@ class OfficialData {
     void SearchForItemsThatRequire(EntityDefinition* entity);
     vector<string> SearchForEntitiesMatchingStrings(const char*);
     void Dump();
+    void ShowDataFileCoverage();
 
  private:
     OfficialData();
