@@ -74,6 +74,7 @@ Not sure yet about licensing or anything like that but here's the current source
         success: function(data) {
            plan = data;
            $('#planDiv').empty();
+           document.title = /^[^.]+\.?(.*)$/.exec(entity)[1];
            CreateTopLevelRequirementsDiv(plan[0].ItemDeep.Requirements, rank).appendTo('#planDiv');
            CreateCostDiv(plan[0].Cost).appendTo('#planDiv');
            CreateBankDiv(plan[0].Bank).appendTo('#planDiv');
